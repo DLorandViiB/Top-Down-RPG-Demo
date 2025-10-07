@@ -12,7 +12,6 @@ public class PlayerMovement : MonoBehaviour
     private float accelerationRate;
     private Rigidbody2D rb;
 
-    // Track pressed keys in order
     private List<Key> pressedKeys = new List<Key>();
 
     private void Start()
@@ -26,13 +25,11 @@ public class PlayerMovement : MonoBehaviour
         var kb = Keyboard.current;
         if (kb == null) return;
 
-        // Handle press/release for each arrow key
         HandleKey(kb.upArrowKey, Key.UpArrow);
         HandleKey(kb.downArrowKey, Key.DownArrow);
         HandleKey(kb.leftArrowKey, Key.LeftArrow);
         HandleKey(kb.rightArrowKey, Key.RightArrow);
 
-        // Update movement direction based on most recent pressed key
         UpdateDirection();
     }
 
