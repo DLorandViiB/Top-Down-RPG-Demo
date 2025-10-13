@@ -20,6 +20,9 @@ public class PlayerUI : MonoBehaviour
 
     private void Start()
     {
+        player.OnStatsChanged += UpdateStats;
+        UpdateStats();
+
         if (player == null)
         {
             Debug.LogWarning("Player not assigned in PlayerUI.");
@@ -31,7 +34,7 @@ public class PlayerUI : MonoBehaviour
         xCurrent = xTarget = (float)player.currentXP / player.xpToNextLevel;
     }
 
-    private void Update()
+    private void UpdateStats()
     {
         if (player == null) return;
 

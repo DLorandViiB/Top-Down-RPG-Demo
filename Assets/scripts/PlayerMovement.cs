@@ -11,7 +11,6 @@ public class PlayerMovement : MonoBehaviour
     private float currentSpeed = 0f;
     private float accelerationRate;
     private Rigidbody2D rb;
-
     private List<Key> pressedKeys = new List<Key>();
 
     private void Start()
@@ -22,6 +21,7 @@ public class PlayerMovement : MonoBehaviour
 
     private void Update()
     {
+
         var kb = Keyboard.current;
         if (kb == null) return;
 
@@ -66,6 +66,7 @@ public class PlayerMovement : MonoBehaviour
 
     private void FixedUpdate()
     {
+
         if (direction != Vector2.zero)
             currentSpeed = Mathf.MoveTowards(currentSpeed, maxSpeed, accelerationRate * Time.fixedDeltaTime);
         else
