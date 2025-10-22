@@ -706,7 +706,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7f53d9fde91f96a46b4c24f504d81325, type: 3}
   m_Name: 
   m_EditorClassIdentifier: '::'
-  enemy: {fileID: 1010802602}
   playerHealthBar: {fileID: 1717368798}
   playerHPText: {fileID: 1513648417}
   playerManaBar: {fileID: 866960733}
@@ -1439,8 +1438,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d0687774a07e8da4389ea44f17e82377, type: 3}
   m_Name: 
   m_EditorClassIdentifier: '::'
-  enemyName: Placeholder Enemy
-  maxHealth: 50
+  enemyData: {fileID: 0}
   currentHealth: 0
 --- !u!1 &1054719527
 GameObject:

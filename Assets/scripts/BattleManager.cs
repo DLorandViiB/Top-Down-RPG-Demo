@@ -8,7 +8,7 @@ public class BattleManager : MonoBehaviour
     private PlayerStats playerStats;
 
     [Header("Enemy")]
-    public EnemyBattleController enemy;
+    private EnemyBattleController enemy;
 
     [Header("UI References")]
     public Slider playerHealthBar;
@@ -17,26 +17,40 @@ public class BattleManager : MonoBehaviour
     public TextMeshProUGUI playerMPText;
 
     public Slider enemyHealthBar;
+    //public TextMeshProUGUI enemyNameText;
 
     void Start()
     {
-        playerStats = PlayerStats.instance;
+        // --- 1. FIND OBJECTS (This is where the error happens) ---
+        playerStats = PlayerStats.instance; // This line needs PlayerStats.Awake() to have run first!
+        enemy = FindFirstObjectByType<EnemyBattleController>();
 
+
+        // --- 2. HIDE PLAYER SPRITE ---
+        if (playerStats != null)
+        {
+            SpriteRenderer playerSprite = playerStats.GetComponentInChildren<SpriteRenderer>();
+            if (playerSprite != null)
+            {
+                playerSprite.enabled = false;
+            }
+        }
+
+        // --- 3. SETUP ENEMY (This is the new logic) ---
         if (GameStatemanager.instance != null && GameStatemanager.instance.enemyToBattle != null)
         {
-            // This is the normal flow
-            enemy.Setup(GameStatemanager.instance.enemyToBattle.enemyName,
-                          GameStatemanager.instance.enemyToBattle.maxHealth);
+            // Normal path: Get the enemy from the GameStatemanager
+            enemy.Setup(GameStatemanager.instance.enemyToBattle);
         }
         else
         {
-            // Failsafe for testing the scene directly
-            Debug.LogWarning("No enemy data found! Loading placeholder.");
-            enemy.Setup("Test Slime", 30);
+            // Failsafe path: We're testing the scene directly
+            enemy.Setup(null); // The 'null' will trigger the placeholder logic
         }
 
-        UpdatePlayerUI();
-        UpdateEnemyUI();
+        // --- 4. UPDATE UI ---
+        UpdatePlayerUI(); // This needs playerStats to be not-null
+        UpdateEnemyUI();  // This needs enemy to be not-null
 
         if (GameStatemanager.instance != null)
         {
@@ -65,7 +79,10 @@ public class BattleManager : MonoBehaviour
 
     public void UpdateEnemyUI()
     {
-        enemyHealthBar.maxValue = enemy.maxHealth;
+        if (enemy == null || enemy.enemyData == null) return;
+
+        enemyHealthBar.maxValue = enemy.enemyData.maxHealth;
         enemyHealthBar.value = enemy.currentHealth;
+        //enemyNameText.SetText(enemy.enemyData.enemyName);
     }
 }

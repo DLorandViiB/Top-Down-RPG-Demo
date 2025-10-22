@@ -43,7 +43,7 @@ public class GameStatemanager : MonoBehaviour
             playerMovement = PlayerStats.instance.GetComponentInChildren<PlayerMovement>();
 
             // Get the Rigidbody from our persistent player
-            playerRb = PlayerStats.instance.GetComponentInChildren<Rigidbody2D>(); // <-- ADD THIS
+            playerRb = PlayerStats.instance.GetComponentInChildren<Rigidbody2D>();
         }
 
         // --- ADD A NULL CHECK ---
