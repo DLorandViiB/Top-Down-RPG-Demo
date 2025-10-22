@@ -13,9 +13,12 @@ public class PlayerMovement : MonoBehaviour
     private Rigidbody2D rb;
     private List<Key> pressedKeys = new List<Key>();
 
+    private Animator anim; // --- ÚJ VÁLTOZÓ AZ ANIMATORNAK ---
+
     private void Start()
     {
         rb = GetComponent<Rigidbody2D>();
+        anim = GetComponent<Animator>(); // --- EZT A SORT ADD HOZZÁ ---
         accelerationRate = maxSpeed / accelerationTime;
     }
 
@@ -31,6 +34,10 @@ public class PlayerMovement : MonoBehaviour
         HandleKey(kb.rightArrowKey, Key.RightArrow);
 
         UpdateDirection();
+
+        // --- EZT A KÉT SORT ADD HOZZÁ AZ UPDATE VÉGÉRE ---
+        anim.SetFloat("moveX", direction.x);
+        anim.SetFloat("moveY", direction.y);
     }
 
     private void HandleKey(UnityEngine.InputSystem.Controls.KeyControl keyControl, Key key)
