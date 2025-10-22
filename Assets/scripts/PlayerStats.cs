@@ -3,6 +3,22 @@ using System;
 
 public class PlayerStats : MonoBehaviour
 {
+    public static PlayerStats instance;
+
+    //Singleton
+    private void Awake()
+    {
+        if (instance == null)
+        {
+            instance = this;
+            DontDestroyOnLoad(this.gameObject);
+        }
+        else
+        {
+            Destroy(this.gameObject);
+        }
+    }
+
     [Header("Base Stats")]
     public string playerName = "Hero";
     public int level = 1;

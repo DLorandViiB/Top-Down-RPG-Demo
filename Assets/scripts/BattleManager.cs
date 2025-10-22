@@ -20,12 +20,28 @@ public class BattleManager : MonoBehaviour
 
     void Start()
     {
-        playerStats = FindObjectOfType<PlayerStats>();
+        playerStats = PlayerStats.instance;
 
-        enemy.Setup("Placeholder", 50);
+        if (GameStatemanager.instance != null && GameStatemanager.instance.enemyToBattle != null)
+        {
+            // This is the normal flow
+            enemy.Setup(GameStatemanager.instance.enemyToBattle.enemyName,
+                          GameStatemanager.instance.enemyToBattle.maxHealth);
+        }
+        else
+        {
+            // Failsafe for testing the scene directly
+            Debug.LogWarning("No enemy data found! Loading placeholder.");
+            enemy.Setup("Test Slime", 30);
+        }
 
         UpdatePlayerUI();
         UpdateEnemyUI();
+
+        if (GameStatemanager.instance != null)
+        {
+            StartCoroutine(GameStatemanager.instance.FadeIn());
+        }
     }
 
     public void UpdatePlayerUI()
