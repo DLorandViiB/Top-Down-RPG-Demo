@@ -43,10 +43,12 @@ public class EncounterZone : MonoBehaviour
             if (isMoving)
             {
                 // Roll the dice (scaled by time)
-                if (true)
+                if (!GameStatemanager.instance.isEncounterOnCooldown)
                 {
-                    // Found a battle!
-                    StartEncounter();
+                    if (/*Random.value < encounterChance * Time.deltaTime*/ true)
+                    {
+                        StartEncounter();
+                    }
                 }
             }
         }
@@ -54,22 +56,15 @@ public class EncounterZone : MonoBehaviour
 
     private void StartEncounter()
     {
-        // Stop checking for more battles
-        playerIsInside = false; 
-        
-        // This prevents multiple battles from triggering at once
-        this.enabled = false; 
+        playerIsInside = false;
 
-        // Pick a random enemy from our list
+        // --- THIS LINE IS IMPORTANT ---
+        // This stops this specific zone from re-triggering
+        this.enabled = false;
+
         int randomIndex = Random.Range(0, possibleEnemies.Length);
-    EnemyData enemyToBattle = possibleEnemies[randomIndex];
+        EnemyData enemyToBattle = possibleEnemies[randomIndex];
 
-    // Tell the (now existing) GameStatemanager to start the battle
-    GameStatemanager.instance.StartBattle(enemyToBattle);
-        
-        // We'll re-enable this script when the battle ends
+        GameStatemanager.instance.StartBattle(enemyToBattle);
     }
-
-    // We need a way to re-enable this script after a battle
-    // We'll add this later. For now, it will only trigger one battle.
 }

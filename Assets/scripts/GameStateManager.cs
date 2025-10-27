@@ -19,6 +19,13 @@ public class GameStatemanager : MonoBehaviour
     private PlayerMovement playerMovement; // To freeze the player
     private Rigidbody2D playerRb;
 
+    [Header("Encounter Cooldown")]
+    public float encounterCooldownTime = 5.0f;
+    public bool isEncounterOnCooldown = false;
+
+    private SpriteRenderer playerSpriteRenderer;
+    public string overworldSceneName = "MainWorldScene";
+
     void Awake()
     {
         // This is the singleton pattern to make it persistent
@@ -79,6 +86,69 @@ public class GameStatemanager : MonoBehaviour
 
         // 5. Fade back in (the BattleManager will call this)
         StartCoroutine(FadeIn());
+    }
+
+    public void EndBattle()
+    {
+        StartCoroutine(EndBattleTransition());
+    }
+
+    private IEnumerator EndBattleTransition()
+    {
+        // 1. Fade to black
+        yield return StartCoroutine(FadeOut());
+
+        // 2. Load the main world
+        yield return SceneManager.LoadSceneAsync(overworldSceneName);
+
+        // 3. Find all components
+        playerMovement = PlayerStats.instance.GetComponentInChildren<PlayerMovement>();
+        playerSpriteRenderer = PlayerStats.instance.GetComponentInChildren<SpriteRenderer>();
+        playerRb = PlayerStats.instance.GetComponentInChildren<Rigidbody2D>();
+
+        // Stop any current physical movement
+        if (playerRb != null) playerRb.linearVelocity = Vector2.zero;
+
+        // Force Unity to clear all "stuck" key presses from its memory
+        Input.ResetInputAxes();
+
+        // Make the player visible, but KEEP MOVEMENT DISABLED
+        if (playerSpriteRenderer != null) playerSpriteRenderer.enabled = true;
+        if (playerMovement != null) playerMovement.enabled = false;
+
+        // 5. Re-link the camera
+        CameraFollow camFollow = FindFirstObjectByType<CameraFollow>();
+        if (camFollow != null)
+        {
+            camFollow.target = PlayerStats.instance.transform;
+        }
+        else
+        {
+            Debug.LogWarning("GameStatemanager: Could not find CameraFollow script!");
+        }
+
+        // 6. Re-enable all encounter zones
+        EncounterZone[] zones = FindObjectsByType<EncounterZone>(FindObjectsSortMode.None);
+        foreach (EncounterZone zone in zones)
+        {
+            zone.enabled = true;
+        }
+
+        // 7. Start the "safe" cooldown
+        StartCoroutine(EncounterCooldown());
+
+        // 8. Fade back in
+        yield return StartCoroutine(FadeIn());
+
+        // 9. AFTER fade-in, re-enable the movement script.
+        if (playerMovement != null) playerMovement.enabled = true;
+    }
+
+    private IEnumerator EncounterCooldown()
+    {
+        isEncounterOnCooldown = true;
+        yield return new WaitForSeconds(encounterCooldownTime);
+        isEncounterOnCooldown = false;
     }
 
     // Coroutine to fade the screen to black

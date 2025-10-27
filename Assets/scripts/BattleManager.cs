@@ -1,6 +1,7 @@
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
+using System.Collections;
 
 public class BattleManager : MonoBehaviour
 {
@@ -18,15 +19,19 @@ public class BattleManager : MonoBehaviour
 
     public Slider enemyHealthBar;
     //public TextMeshProUGUI enemyNameText;
+    public TextMeshProUGUI commentText;
+
+    [Header("Action Buttons")]
+    public Button[] actionButtons;
+    public GameObject actionOptionsPanel;
+    private int selectedButtonIndex = 0;
+    private bool isPlayerTurn = true;
 
     void Start()
     {
-        // --- 1. FIND OBJECTS (This is where the error happens) ---
-        playerStats = PlayerStats.instance; // This line needs PlayerStats.Awake() to have run first!
+        playerStats = PlayerStats.instance;
         enemy = FindFirstObjectByType<EnemyBattleController>();
 
-
-        // --- 2. HIDE PLAYER SPRITE ---
         if (playerStats != null)
         {
             SpriteRenderer playerSprite = playerStats.GetComponentInChildren<SpriteRenderer>();
@@ -36,26 +41,25 @@ public class BattleManager : MonoBehaviour
             }
         }
 
-        // --- 3. SETUP ENEMY (This is the new logic) ---
         if (GameStatemanager.instance != null && GameStatemanager.instance.enemyToBattle != null)
         {
-            // Normal path: Get the enemy from the GameStatemanager
             enemy.Setup(GameStatemanager.instance.enemyToBattle);
         }
         else
         {
-            // Failsafe path: We're testing the scene directly
-            enemy.Setup(null); // The 'null' will trigger the placeholder logic
+            enemy.Setup(null);
         }
 
-        // --- 4. UPDATE UI ---
-        UpdatePlayerUI(); // This needs playerStats to be not-null
-        UpdateEnemyUI();  // This needs enemy to be not-null
+        UpdatePlayerUI();
+        UpdateEnemyUI();
 
         if (GameStatemanager.instance != null)
         {
             StartCoroutine(GameStatemanager.instance.FadeIn());
         }
+
+        actionButtons[selectedButtonIndex].Select();
+        actionButtons[0].onClick.AddListener(OnFightButton);
     }
 
     public void UpdatePlayerUI()
@@ -84,5 +88,180 @@ public class BattleManager : MonoBehaviour
         enemyHealthBar.maxValue = enemy.enemyData.maxHealth;
         enemyHealthBar.value = enemy.currentHealth;
         //enemyNameText.SetText(enemy.enemyData.enemyName);
+    }
+
+    void Update()
+    {
+        if (isPlayerTurn == false)
+        {
+            return;
+        }
+
+        // --- Button Navigation ---
+        if (Input.GetKeyDown(KeyCode.RightArrow))
+        {
+            selectedButtonIndex++;
+            if (selectedButtonIndex >= actionButtons.Length)
+            {
+                selectedButtonIndex = 0;
+            }
+            actionButtons[selectedButtonIndex].Select();
+        }
+        else if (Input.GetKeyDown(KeyCode.LeftArrow))
+        {
+            selectedButtonIndex--;
+            if (selectedButtonIndex < 0)
+            {
+                selectedButtonIndex = actionButtons.Length - 1;
+            }
+            actionButtons[selectedButtonIndex].Select();
+        }
+
+        // --- Button "Click" ---
+        if (Input.GetKeyDown(KeyCode.Z))
+        {
+            actionButtons[selectedButtonIndex].onClick.Invoke();
+        }
+    }
+
+    public void OnFightButton()
+    {
+        isPlayerTurn = false;
+        SetButtonsInteractable(false);
+
+        int roll = Random.Range(1, 21); // Roll a d20 (1 to 20)
+        int finalRoll = roll + playerStats.luck;
+
+        ShowMessage($"You rolled a {roll} ( +{playerStats.luck} luck ) = {finalRoll}");
+
+        // --- Check the outcomes ---
+        if (roll == 20)
+        {
+            // INSTA-KILL!
+            PerformInstaKill(roll);
+        }
+        else if (finalRoll < 5)
+        {
+            // MISS
+            PerformMiss(finalRoll);
+        }
+        else if (finalRoll >= 15)
+        {
+            // CRITICAL HIT
+            PerformCritAttack(finalRoll);
+        }
+        else // Anything else (finalRoll between 5 and 14)
+        {
+            // NORMAL HIT
+            PerformNormalAttack(finalRoll);
+        }
+
+        // After our turn, it's the enemy's turn
+        // (We'll add a delay so the player can read the message)
+        StartCoroutine(EnemyTurn());
+    }
+
+    void PerformNormalAttack(int finalRoll)
+    {
+        // Damage now includes the roll
+        int damage = (playerStats.attack + finalRoll) - enemy.enemyData.defense;
+        if (damage < 1) damage = 1;
+
+        ShowMessage($"You attack! Your roll of {finalRoll} deals {damage} damage.");
+
+        enemy.TakeDamage(damage);
+        UpdateEnemyUI();
+    }
+
+    void PerformCritAttack(int finalRoll)
+    {
+        // Crit damage: 1.5x damage and ignores defense
+        int damage = Mathf.RoundToInt((playerStats.attack + finalRoll) * 1.5f);
+        if (damage < 1) damage = 1;
+
+        ShowMessage($"A critical hit! Your roll of {finalRoll} deals {damage} damage!");
+
+        enemy.TakeDamage(damage);
+        UpdateEnemyUI();
+    }
+
+    void PerformInstaKill(int roll)
+    {
+        ShowMessage($"NATURAL 20! A devastating blow!");
+
+        enemy.TakeDamage(999);
+        UpdateEnemyUI();
+    }
+
+    void PerformMiss(int finalRoll)
+    {
+        ShowMessage($"You missed! (Your roll: {finalRoll})");
+    }
+
+    void ShowMessage(string message)
+    {
+        commentText.SetText(message);
+    }
+
+    IEnumerator EnemyTurn()
+    {
+        yield return new WaitForSeconds(2f);
+
+        if (enemy.currentHealth > 0)
+        {
+            // --- ENEMY'S TURN LOGIC ---
+            ShowMessage($"The {enemy.enemyData.enemyName} attacks...");
+            yield return new WaitForSeconds(1.5f);
+
+            int roll = Random.Range(1, 21);
+
+            if (roll < 5)
+            {
+                // MISS
+                ShowMessage($"The {enemy.enemyData.enemyName} rolled a {roll} and missed!");
+            }
+            else if (roll >= 15)
+            {
+                // CRITICAL HIT
+                int damage = Mathf.RoundToInt((enemy.enemyData.attack + roll) * 1.5f) - playerStats.defense;
+                if (damage < 1) damage = 1;
+
+                playerStats.TakeDamage(damage);
+                UpdatePlayerUI();
+                ShowMessage($"A critical hit! The enemy rolled a {roll} and deals {damage} damage!");
+            }
+            else
+            {
+                // NORMAL HIT
+                int damage = (enemy.enemyData.attack + roll) - playerStats.defense;
+                if (damage < 1) damage = 1;
+
+                playerStats.TakeDamage(damage);
+                UpdatePlayerUI();
+                ShowMessage($"The enemy rolled a {roll} and deals {damage} damage!");
+            }
+
+            yield return new WaitForSeconds(2f);
+            SetButtonsInteractable(true);
+            isPlayerTurn = true;
+            actionButtons[selectedButtonIndex].Select();
+
+        }
+        else
+        {
+            ShowMessage($"You defeated the {enemy.enemyData.enemyName}!");
+
+            yield return new WaitForSeconds(2.5f);
+
+            GameStatemanager.instance.EndBattle();
+        }
+    }
+
+    void SetButtonsInteractable(bool state)
+    {
+        foreach (Button button in actionButtons)
+        {
+            button.interactable = state;
+        }
     }
 }
