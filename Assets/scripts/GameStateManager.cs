@@ -67,10 +67,10 @@ public class GameStatemanager : MonoBehaviour
     {
         // 1. Store enemy and freeze player
         enemyToBattle = enemy;
-        playerMovement.enabled = false;
-        if (playerRb != null)
+        if (playerMovement != null)
         {
-            playerRb.linearVelocity = Vector2.zero;
+            playerMovement.canMove = false;
+            playerMovement.StopMovement();
         }
 
         // 2. Show "Enemy approaching!" text
@@ -104,17 +104,14 @@ public class GameStatemanager : MonoBehaviour
         // 3. Find all components
         playerMovement = PlayerStats.instance.GetComponentInChildren<PlayerMovement>();
         playerSpriteRenderer = PlayerStats.instance.GetComponentInChildren<SpriteRenderer>();
-        playerRb = PlayerStats.instance.GetComponentInChildren<Rigidbody2D>();
 
-        // Stop any current physical movement
-        if (playerRb != null) playerRb.linearVelocity = Vector2.zero;
-
-        // Force Unity to clear all "stuck" key presses from its memory
-        Input.ResetInputAxes();
-
-        // Make the player visible, but KEEP MOVEMENT DISABLED
+        // 4. Make the player visible and stop them
         if (playerSpriteRenderer != null) playerSpriteRenderer.enabled = true;
-        if (playerMovement != null) playerMovement.enabled = false;
+        if (playerMovement != null)
+        {
+            playerMovement.canMove = false; // Make sure it's still false
+            playerMovement.StopMovement();  // Stop any lingering velocity
+        }
 
         // 5. Re-link the camera
         CameraFollow camFollow = FindFirstObjectByType<CameraFollow>();
@@ -140,8 +137,8 @@ public class GameStatemanager : MonoBehaviour
         // 8. Fade back in
         yield return StartCoroutine(FadeIn());
 
-        // 9. AFTER fade-in, re-enable the movement script.
-        if (playerMovement != null) playerMovement.enabled = true;
+        // 9. AFTER fade-in, unfreeze the player.
+        if (playerMovement != null) playerMovement.canMove = true;
     }
 
     private IEnumerator EncounterCooldown()

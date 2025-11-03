@@ -4,6 +4,8 @@ using System.Collections.Generic;
 
 public class PlayerMovement : MonoBehaviour
 {
+    public bool canMove = true;
+
     public float maxSpeed = 5f;
     public float accelerationTime = 0.5f;
 
@@ -13,17 +15,29 @@ public class PlayerMovement : MonoBehaviour
     private Rigidbody2D rb;
     private List<Key> pressedKeys = new List<Key>();
 
-    private Animator anim; // --- ÚJ VÁLTOZÓ AZ ANIMATORNAK ---
+    private Animator anim;
 
     private void Start()
     {
         rb = GetComponent<Rigidbody2D>();
-        anim = GetComponent<Animator>(); // --- EZT A SORT ADD HOZZÁ ---
+        anim = GetComponent<Animator>();
         accelerationRate = maxSpeed / accelerationTime;
     }
 
     private void Update()
     {
+        if (canMove == false)
+        {
+            if (pressedKeys.Count > 0)
+            {
+                pressedKeys.Clear();
+                UpdateDirection();
+            }
+
+            anim.SetFloat("moveX", 0);
+            anim.SetFloat("moveY", 0);
+            return;
+        }
 
         var kb = Keyboard.current;
         if (kb == null) return;
@@ -35,7 +49,6 @@ public class PlayerMovement : MonoBehaviour
 
         UpdateDirection();
 
-        // --- EZT A KÉT SORT ADD HOZZÁ AZ UPDATE VÉGÉRE ---
         anim.SetFloat("moveX", direction.x);
         anim.SetFloat("moveY", direction.y);
     }
@@ -73,6 +86,13 @@ public class PlayerMovement : MonoBehaviour
 
     private void FixedUpdate()
     {
+        // If frozen, force physics to stop.
+        if (canMove == false)
+        {
+            currentSpeed = 0;
+            rb.linearVelocity = Vector2.zero;
+            return;
+        }
 
         if (direction != Vector2.zero)
             currentSpeed = Mathf.MoveTowards(currentSpeed, maxSpeed, accelerationRate * Time.fixedDeltaTime);
@@ -80,5 +100,22 @@ public class PlayerMovement : MonoBehaviour
             currentSpeed = Mathf.MoveTowards(currentSpeed, 0f, accelerationRate * Time.fixedDeltaTime);
 
         rb.linearVelocity = direction * currentSpeed;
+    }
+
+    // GameStatemanager will call this
+    public void StopMovement()
+    {
+        // Clear all held keys.
+        pressedKeys.Clear();
+
+        UpdateDirection();
+
+        currentSpeed = 0f;
+        if (rb == null) rb = GetComponent<Rigidbody2D>();
+        rb.linearVelocity = Vector2.zero;
+
+        if (anim == null) anim = GetComponent<Animator>();
+        anim.SetFloat("moveX", 0);
+        anim.SetFloat("moveY", 0);
     }
 }
