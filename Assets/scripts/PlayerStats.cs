@@ -29,6 +29,7 @@ public class PlayerStats : MonoBehaviour
     public int attack = 10;
     public int defense = 5;
     public int luck = 2;
+    public int skillPoints = 0;
 
     [Header("Experience")]
     public int currentXP = 0;
@@ -76,6 +77,7 @@ public class PlayerStats : MonoBehaviour
         luck += 1;
         currentHealth = maxHealth;
         currentMana = maxMana;
+        skillPoints++;
 
         OnStatsChanged?.Invoke();
     }

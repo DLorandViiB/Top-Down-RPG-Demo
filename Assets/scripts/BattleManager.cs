@@ -250,6 +250,11 @@ public class BattleManager : MonoBehaviour
         else
         {
             ShowMessage($"You defeated the {enemy.enemyData.enemyName}!");
+            playerStats.GainXP(enemy.enemyData.xpYield + Random.Range(0,20));
+
+            yield return new WaitForSeconds(1.5f);
+
+            ShowMessage($"You gained {enemy.enemyData.xpYield + Random.Range(0, 20)} XP!");
 
             yield return new WaitForSeconds(2.5f);
 

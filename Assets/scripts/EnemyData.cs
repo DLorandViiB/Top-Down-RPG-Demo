@@ -11,4 +11,5 @@ public class EnemyData : ScriptableObject
     public int maxHealth;
     public int attack;
     public int defense;
+    public int xpYield = 10;
 }
