@@ -1,5 +1,6 @@
 using UnityEngine;
 using System;
+using System.Collections.Generic;
 
 public class PlayerStats : MonoBehaviour
 {
@@ -34,6 +35,9 @@ public class PlayerStats : MonoBehaviour
     [Header("Experience")]
     public int currentXP = 0;
     public int xpToNextLevel = 100;
+
+    [Header("Skills")]
+    public List<SkillData> unlockedSkills = new List<SkillData>();
 
     public event Action OnStatsChanged;
 
@@ -92,5 +96,52 @@ public class PlayerStats : MonoBehaviour
     {
         currentHealth = Mathf.Min(currentHealth + amount, maxHealth);
         OnStatsChanged?.Invoke();
+    }
+
+    // Call this from the UI to try and buy a skill
+    public bool UnlockSkill(SkillData skillToUnlock)
+    {
+        // 1. Check if we can afford it
+        if (skillPoints < skillToUnlock.skillPointCost)
+        {
+            Debug.Log("Not enough skill points!");
+            return false;
+        }
+
+        // 2. Check if we already have it
+        if (unlockedSkills.Contains(skillToUnlock))
+        {
+            Debug.Log("Already unlocked this skill!");
+            return false;
+        }
+
+        // 3. Purchase the skill
+        skillPoints -= skillToUnlock.skillPointCost;
+        unlockedSkills.Add(skillToUnlock);
+
+        // 4. Apply passive stat boosts immediately
+        if (skillToUnlock.skillType == SkillData.SkillType.PassiveStatBoost)
+        {
+            ApplyPassiveStat(skillToUnlock);
+        }
+
+        // 5. This will force all UI to update.
+        OnStatsChanged?.Invoke();
+        return true;
+    }
+
+    // A private helper function to apply stats
+    private void ApplyPassiveStat(SkillData skill)
+    {
+        if (skill.statToBoost == SkillData.StatToBoost.MaxHealth)
+        {
+            maxHealth += skill.boostAmount;
+            Heal(skill.boostAmount); // Also heal the player
+        }
+        else if (skill.statToBoost == SkillData.StatToBoost.MaxMana)
+        {
+            maxMana += skill.boostAmount;
+            currentMana = maxMana;
+        }
     }
 }

@@ -22,13 +22,21 @@ public class CharacterMenuUI : MonoBehaviour
     [Header("Panel Groups & Switching")]
     public RectTransform statsAndInventoryGroup; // Drag your 'StatsAndInventoryGroup' here
     public RectTransform skillTreeGroup;       // Drag your 'SkillTreeGroup' here
-    public TextMeshProUGUI skillPointsText;    // Drag your 'SkillPointsText' here
+
+    [Header("Skill Tree UI")]
+    public TextMeshProUGUI skillPointsText;
+    public TextMeshProUGUI skillNameText;
+    public TextMeshProUGUI skillDescriptionText;
 
     [Header("Slide Settings")]
     public float slideSpeed = 8f;
     private Vector2 onScreenPos;
     private Vector2 offScreenPosLeft;
     private Vector2 offScreenPosRight;
+
+    [Header("Skill Tree Logic")]
+    public SkillTreeNode startingNode; // Drag your top-most skill node here
+    private SkillTreeNode currentNode;
 
     private bool isInventoryOnScreen = true; // Start with inventory visible
     private bool isAnimating = false;
@@ -69,8 +77,6 @@ public class CharacterMenuUI : MonoBehaviour
         characterMenu.SetActive(false);
         isMenuOpen = false;
         Time.timeScale = 1f; // Ensure time is running
-
-        Debug.Log("Menu Manager Ready - Press C to open");
     }
 
     void Update()
@@ -131,7 +137,6 @@ public class CharacterMenuUI : MonoBehaviour
     {
         if (isMenuOpen || characterMenu == null) return;
 
-        Debug.Log("OPENING MENU");
         isMenuOpen = true;
         characterMenu.SetActive(true);
         Time.timeScale = 0f;
@@ -149,14 +154,13 @@ public class CharacterMenuUI : MonoBehaviour
 
         // Update UI
         UpdateSlotSelection();
-        UpdateSkillPoints(); // Update points text when menu opens
+        UpdateSkillPoints();
     }
 
     void CloseMenu()
     {
         if (!isMenuOpen || characterMenu == null) return;
 
-        Debug.Log("CLOSING MENU");
         isMenuOpen = false;
         characterMenu.SetActive(false);
         Time.timeScale = 1f;
@@ -186,11 +190,42 @@ public class CharacterMenuUI : MonoBehaviour
 
     void HandleSkillTreeNavigation()
     {
-        // TODO: Add your skill tree button navigation logic here
         var keyboard = Keyboard.current;
+        if (keyboard == null) return;
+
+        SkillTreeNode nextNode = null;
+
         if (keyboard.upArrowKey.wasPressedThisFrame)
         {
-            Debug.Log("Navigating Skill Tree: UP");
+            nextNode = currentNode.nodeUp;
+        }
+        else if (keyboard.downArrowKey.wasPressedThisFrame)
+        {
+            nextNode = currentNode.nodeDown;
+        }
+        else if (keyboard.leftArrowKey.wasPressedThisFrame)
+        {
+            nextNode = currentNode.nodeLeft;
+        }
+        else if (keyboard.rightArrowKey.wasPressedThisFrame)
+        {
+            nextNode = currentNode.nodeRight;
+        }
+
+        // If we found a valid next node, move to it
+        if (nextNode != null)
+        {
+            currentNode.DeselectNode();
+            currentNode = nextNode;
+            currentNode.SelectNode();
+
+            UpdateSkillDescription();
+        }
+
+        // Check for "click"
+        if (keyboard.zKey.wasPressedThisFrame) // Or your 'Enter'/'Space' key
+        {
+            currentNode.OnNodeClicked();
         }
     }
 
@@ -206,11 +241,27 @@ public class CharacterMenuUI : MonoBehaviour
         {
             skillPointsText.SetText("Skill Points: --");
         }
+
+        RefreshAllNodeVisuals();
+    }
+
+    void RefreshAllNodeVisuals()
+    {
+        // Check if the panel is active
+        if (skillTreeGroup == null) return;
+
+        SkillTreeNode[] allNodes = skillTreeGroup.GetComponentsInChildren<SkillTreeNode>();
+        foreach (SkillTreeNode node in allNodes)
+        {
+            if (node.skillData != null && PlayerStats.instance != null)
+            {
+                node.UpdateNodeVisuals(PlayerStats.instance);
+            }
+        }
     }
 
     void UpdateSlotSelection()
     {
-        // ... (This is your old selection logic, it's perfect)
         if (slots.Count == 0) return;
         for (int i = 0; i < slots.Count; i++)
         {
@@ -226,7 +277,6 @@ public class CharacterMenuUI : MonoBehaviour
 
     void CreateSlots()
     {
-        // ... (This is your old create slots logic, it's perfect)
         if (slotPrefab == null || inventoryPanel == null) return;
         foreach (Transform child in inventoryPanel) { Destroy(child.gameObject); }
         slots.Clear();
@@ -257,6 +307,45 @@ public class CharacterMenuUI : MonoBehaviour
         panelToHide.anchoredPosition = hidePos;
         panelToShow.anchoredPosition = showPos;
 
+        // If we are showing the Skill Tree
+        if (panelToShow == skillTreeGroup)
+        {
+            if (startingNode != null)
+            {
+                currentNode = startingNode;
+                currentNode.SelectNode();
+
+                // Update the description box for the starting node
+                UpdateSkillDescription();
+            }
+        }
+        // If we are hiding the Skill Tree
+        else if (panelToHide == skillTreeGroup)
+        {
+            if (currentNode != null)
+            {
+                currentNode.DeselectNode();
+            }
+            currentNode = null;
+
+            // Clear the description box
+            UpdateSkillDescription();
+        }
+
         isAnimating = false;
+
+    }
+
+    void UpdateSkillDescription()
+    {
+        if (currentNode == null || currentNode.skillData == null)
+        {
+            skillNameText.text = "???";
+            skillDescriptionText.text = "Select a skill to see details.";
+            return;
+        }
+
+        skillNameText.text = currentNode.skillData.skillName;
+        skillDescriptionText.text = currentNode.skillData.description;
     }
 }
