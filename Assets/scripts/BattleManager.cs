@@ -2,9 +2,13 @@ using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
 using System.Collections;
+using System.Collections.Generic;
 
 public class BattleManager : MonoBehaviour
 {
+    private enum BattleMenuState { ActionSelect, SkillSelect }
+    private BattleMenuState currentState;
+
     [Header("Player")]
     private PlayerStats playerStats;
 
@@ -24,8 +28,17 @@ public class BattleManager : MonoBehaviour
     [Header("Action Buttons")]
     public Button[] actionButtons;
     public GameObject actionOptionsPanel;
-    private int selectedButtonIndex = 0;
+    private int currentActionIndex = 0;
     private bool isPlayerTurn = true;
+
+    [Header("Skill Panel")]
+    public GameObject skillListPanel;
+    public GameObject skillButtonPrefab;
+    private int currentSkillIndex = 0;
+    public Transform skillRow1;
+    public Transform skillRow2;
+
+    private List<SkillButton> currentSkillButtons = new List<SkillButton>();
 
     void Start()
     {
@@ -58,8 +71,14 @@ public class BattleManager : MonoBehaviour
             StartCoroutine(GameStatemanager.instance.FadeIn());
         }
 
-        actionButtons[selectedButtonIndex].Select();
         actionButtons[0].onClick.AddListener(OnFightButton);
+        actionButtons[1].onClick.AddListener(OnSkillButton);
+        actionButtons[2].onClick.AddListener(OnItemButton);
+        actionButtons[3].onClick.AddListener(OnRunButton);
+
+        currentState = BattleMenuState.ActionSelect;
+        skillListPanel.SetActive(false); // Skills are hidden
+        actionButtons[0].Select();
     }
 
     public void UpdatePlayerUI()
@@ -92,35 +111,123 @@ public class BattleManager : MonoBehaviour
 
     void Update()
     {
-        if (isPlayerTurn == false)
+        // If it's not our turn, don't allow any menu input
+        if (!isPlayerTurn) return;
+
+        // --- 'X' KEY (CANCEL) LOGIC ---
+        if (currentState == BattleMenuState.SkillSelect && Input.GetKeyDown(KeyCode.X))
         {
-            return;
+            GoBackToActions();
+            return; // Don't process any other input this frame
         }
 
-        // --- Button Navigation ---
+        // Check which menu we're currently in
+        if (currentState == BattleMenuState.ActionSelect)
+        {
+            HandleActionNavigation();
+        }
+        else if (currentState == BattleMenuState.SkillSelect)
+        {
+            HandleSkillNavigation();
+        }
+    }
+
+    void HandleActionNavigation()
+    {
+        // [0: FIGHT] [2: ITEM]
+        // [1: SKILL] [3: RUN]
+
+        int previousIndex = currentActionIndex;
+
         if (Input.GetKeyDown(KeyCode.RightArrow))
         {
-            selectedButtonIndex++;
-            if (selectedButtonIndex >= actionButtons.Length)
+            switch (currentActionIndex)
             {
-                selectedButtonIndex = 0;
+                case 0: currentActionIndex = 2; break; // FIGHT -> ITEM
+                case 1: currentActionIndex = 3; break; // SKILL -> RUN
             }
-            actionButtons[selectedButtonIndex].Select();
         }
         else if (Input.GetKeyDown(KeyCode.LeftArrow))
         {
-            selectedButtonIndex--;
-            if (selectedButtonIndex < 0)
+            switch (currentActionIndex)
             {
-                selectedButtonIndex = actionButtons.Length - 1;
+                case 2: currentActionIndex = 0; break; // ITEM -> FIGHT
+                case 3: currentActionIndex = 1; break; // RUN -> SKILL
             }
-            actionButtons[selectedButtonIndex].Select();
+        }
+        else if (Input.GetKeyDown(KeyCode.DownArrow))
+        {
+            switch (currentActionIndex)
+            {
+                case 0: currentActionIndex = 1; break; // FIGHT -> SKILL
+                case 2: currentActionIndex = 3; break; // ITEM -> RUN
+            }
+        }
+        else if (Input.GetKeyDown(KeyCode.UpArrow))
+        {
+            switch (currentActionIndex)
+            {
+                case 1: currentActionIndex = 0; break; // SKILL -> FIGHT
+                case 3: currentActionIndex = 2; break; // RUN -> ITEM
+            }
         }
 
-        // --- Button "Click" ---
+        // If we moved, update the highlight
+        if (previousIndex != currentActionIndex)
+        {
+            actionButtons[currentActionIndex].Select();
+        }
+
+        // Check for "Click"
         if (Input.GetKeyDown(KeyCode.Z))
         {
-            actionButtons[selectedButtonIndex].onClick.Invoke();
+            actionButtons[currentActionIndex].onClick.Invoke();
+        }
+    }
+
+    void HandleSkillNavigation()
+    {
+        int previousIndex = currentSkillIndex;
+        int columns = 3; // The width of your skill grid
+
+        if (Input.GetKeyDown(KeyCode.RightArrow))
+        {
+            currentSkillIndex++;
+            if (currentSkillIndex % columns == 0) currentSkillIndex = previousIndex;
+        }
+        else if (Input.GetKeyDown(KeyCode.LeftArrow))
+        {
+            currentSkillIndex--;
+            if (currentSkillIndex % columns == (columns - 1) || currentSkillIndex < 0) currentSkillIndex = previousIndex;
+        }
+        else if (Input.GetKeyDown(KeyCode.DownArrow))
+        {
+            currentSkillIndex += columns;
+        }
+        else if (Input.GetKeyDown(KeyCode.UpArrow))
+        {
+            if (currentSkillIndex >= columns)
+            {
+                currentSkillIndex -= columns;
+            }
+        }
+
+        // Clamp values to the list of skills *we just created*
+        currentSkillIndex = Mathf.Clamp(currentSkillIndex, 0, currentSkillButtons.Count - 1);
+
+        if (previousIndex != currentSkillIndex)
+        {
+            // Deselect the old one
+            currentSkillButtons[previousIndex].Deselect();
+            // Select the new one
+            currentSkillButtons[currentSkillIndex].Select();
+        }
+
+        // Check for "Click"
+        if (Input.GetKeyDown(KeyCode.Z))
+        {
+            // We get the Button component *from* our script's GameObject
+            currentSkillButtons[currentSkillIndex].GetComponent<Button>().onClick.Invoke();
         }
     }
 
@@ -244,22 +351,152 @@ public class BattleManager : MonoBehaviour
             yield return new WaitForSeconds(2f);
             SetButtonsInteractable(true);
             isPlayerTurn = true;
-            actionButtons[selectedButtonIndex].Select();
+            actionButtons[currentActionIndex].Select();
 
         }
         else
         {
             ShowMessage($"You defeated the {enemy.enemyData.enemyName}!");
-            playerStats.GainXP(enemy.enemyData.xpYield + Random.Range(0,20));
+
+            int xpGained = enemy.enemyData.xpYield + Random.Range(0, 20);
+            playerStats.GainXP(xpGained);
 
             yield return new WaitForSeconds(1.5f);
 
-            ShowMessage($"You gained {enemy.enemyData.xpYield + Random.Range(0, 20)} XP!");
+            ShowMessage($"You gained {xpGained} XP!");
 
             yield return new WaitForSeconds(2.5f);
-
             GameStatemanager.instance.EndBattle();
         }
+    }
+
+    public void OnSkillButton()
+    {
+        // 1. Get ONLY the battle skills from PlayerStats
+        var battleSkills = playerStats.unlockedSkills.FindAll(
+            skill => skill.skillType == SkillData.SkillType.BattleSkill
+        );
+
+        // 2. Check if we even have skills
+        if (battleSkills.Count == 0)
+        {
+            ShowMessage("You have not learned any battle skills!");
+            return;
+        }
+
+        // 3. We have skills! Switch the state.
+        currentState = BattleMenuState.SkillSelect;
+        skillListPanel.SetActive(true);
+        SetButtonsInteractable(false);
+
+        // 4. Clean up old buttons
+        foreach (Transform child in skillRow1) { Destroy(child.gameObject); }
+        foreach (Transform child in skillRow2) { Destroy(child.gameObject); }
+        currentSkillButtons.Clear();
+
+        // 5. Create new buttons and add them to the rows
+        for (int i = 0; i < battleSkills.Count; i++)
+        {
+            SkillData currentSkill = battleSkills[i];
+
+            Transform parentRow = (i < 3) ? skillRow1 : skillRow2;
+
+            GameObject newButtonObj = Instantiate(skillButtonPrefab, parentRow);
+
+            // Get the Button component
+            Button newButton = newButtonObj.GetComponent<Button>();
+
+            // Get our custom script
+            SkillButton skillButtonScript = newButtonObj.GetComponent<SkillButton>();
+
+            // Set its text (e.g., "Fire Slash   10 MP")
+            skillButtonScript.Setup(currentSkill);
+
+            // Add a listener to call OnSkillSelected
+            newButton.onClick.AddListener(() => OnSkillSelected(currentSkill));
+
+            // Add our custom script to the list
+            currentSkillButtons.Add(skillButtonScript);
+        }
+
+        // 6. Select the first skill
+        currentSkillIndex = 0;
+        currentSkillButtons[0].Select();
+    }
+
+    void OnSkillSelected(SkillData selectedSkill)
+    {
+        // 1. Check for mana
+        if (playerStats.currentMana < selectedSkill.manaCost)
+        {
+            ShowMessage("Not enough mana!");
+            return; // Stay in the skill menu
+        }
+
+        // 2. Use the skill
+        isPlayerTurn = false;
+        SetButtonsInteractable(false); // Disable action buttons
+        GoBackToActions();
+
+        // 3. Spend the mana
+        playerStats.UseMana(selectedSkill.manaCost);
+        UpdatePlayerUI();
+
+        // 4. TODO: Add logic for each skill (Heal, Fire Slash, etc.)
+        ShowMessage($"You used {selectedSkill.skillName}!");
+
+        // 5. Start the enemy's turn
+        StartCoroutine(EnemyTurn());
+    }
+
+    void GoBackToActions()
+    {
+        currentState = BattleMenuState.ActionSelect;
+        skillListPanel.SetActive(false); // Hide the skill grid
+        SetButtonsInteractable(true);
+
+        foreach (Transform child in skillRow1) { Destroy(child.gameObject); }
+        foreach (Transform child in skillRow2) { Destroy(child.gameObject); }
+        if (currentSkillButtons.Count > 0)
+        {
+            currentSkillButtons[currentSkillIndex].Deselect();
+        }
+        currentSkillButtons.Clear();
+
+        currentActionIndex = 1;
+        actionButtons[currentActionIndex].Select();
+    }
+
+    public void OnItemButton()
+    {
+        if (!isPlayerTurn) return;
+        ShowMessage("You have no items!");
+        // In the future, this will open the Item menu
+    }
+
+    public void OnRunButton()
+    {
+        // Don't let the player run if it's not their turn
+        if (!isPlayerTurn) return;
+
+        // Set state to prevent spamming
+        isPlayerTurn = false;
+        SetButtonsInteractable(false);
+
+        // Tell the GameStatemanager to end the battle
+        ShowMessage("You got away safely!");
+
+        // We'll use a coroutine to add a small delay
+        StartCoroutine(RunAway());
+    }
+
+    IEnumerator RunAway()
+    {
+        // Wait for the message to be read
+        yield return new WaitForSeconds(1.5f);
+
+        // This is the function we built in GameStatemanager
+        GameStatemanager.instance.EndBattle();
     }
 
     void SetButtonsInteractable(bool state)
