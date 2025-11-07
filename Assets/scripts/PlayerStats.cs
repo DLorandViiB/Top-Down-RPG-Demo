@@ -4,8 +4,11 @@ using System.Collections.Generic;
 
 public struct TakeDamageResult
 {
-    public List<string> messages;
+    // We'll store the specific message for each effect
+    public string thornsMessage;
     public int thornsDamage;
+
+    public string healMessage;
     public int healAmount;
 }
 
@@ -196,11 +199,13 @@ public class PlayerStats : MonoBehaviour
             if (buff.effect == newBuff.effect)
             {
                 buff.duration = newBuff.duration;
+                OnStatsChanged?.Invoke();
                 return;
             }
         }
         // If not, add the new one
         activeBuffs.Add(newBuff);
+        OnStatsChanged?.Invoke();
     }
 
     // BattleManager will call this at the END of the player's turn
@@ -222,9 +227,9 @@ public class PlayerStats : MonoBehaviour
     private TakeDamageResult CheckBuffsOnDamage(int damageTaken)
     {
         TakeDamageResult result = new TakeDamageResult();
-        result.messages = new List<string>();
-        result.thornsDamage = 0;
-        result.healAmount = 0; // <-- ADD THIS
+        // Initialize empty so we can check for null/empty later
+        result.thornsMessage = "";
+        result.healMessage = "";
 
         foreach (Buff buff in activeBuffs)
         {
@@ -232,13 +237,14 @@ public class PlayerStats : MonoBehaviour
             {
                 int healAmount = 10;
                 result.healAmount = healAmount;
-                result.messages.Add($"Guardian Angel heals you for {healAmount} HP!");
+                result.healMessage = $"Guardian Angel heals you for {healAmount} HP!";
             }
+
             if (buff.effect == SkillData.SkillEffect.Thorns)
             {
                 int thornDamage = 15;
                 result.thornsDamage = thornDamage;
-                result.messages.Add($"Your thorns deal {thornDamage} damage to the enemy!");
+                result.thornsMessage = $"Your thorns deal {thornDamage} damage to the enemy!";
             }
         }
         return result;

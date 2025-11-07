@@ -40,6 +40,8 @@ public class BattleManager : MonoBehaviour
 
     private List<SkillButton> currentSkillButtons = new List<SkillButton>();
 
+    private bool isWaitingForInput = false;
+
     void Start()
     {
         playerStats = PlayerStats.instance;
@@ -111,6 +113,8 @@ public class BattleManager : MonoBehaviour
 
     void Update()
     {
+        if (isWaitingForInput) return;
+
         // If it's not our turn, don't allow any menu input
         if (!isPlayerTurn) return;
 
@@ -233,109 +237,110 @@ public class BattleManager : MonoBehaviour
 
     public void OnFightButton()
     {
+        if (!isPlayerTurn) return;
+        StartCoroutine(FightSequence());
+    }
+
+    IEnumerator FightSequence()
+    {
         isPlayerTurn = false;
         SetButtonsInteractable(false);
 
-        int roll = Random.Range(1, 21); // Roll a d20 (1 to 20)
+        int roll = Random.Range(1, 21);
         int finalRoll = roll + playerStats.luck;
 
-        ShowMessage($"You rolled a {roll} ( +{playerStats.luck} luck ) = {finalRoll}");
+        yield return StartCoroutine(ShowMessageAndWait($"You rolled a {roll} ( +{playerStats.luck} luck ) = {finalRoll}"));
 
-        // --- Check the outcomes ---
+        // Check the outcomes
         if (roll == 20)
         {
-            // INSTA-KILL!
-            PerformInstaKill(roll);
+            yield return StartCoroutine(PerformInstaKill(null));
         }
         else if (finalRoll < 5)
         {
-            // MISS
-            PerformMiss(finalRoll);
+            yield return StartCoroutine(PerformMiss(finalRoll));
         }
         else if (finalRoll >= 15)
         {
-            // CRITICAL HIT
-            PerformCritAttack(finalRoll);
+            yield return StartCoroutine(PerformCritAttack(finalRoll));
         }
-        else // Anything else (finalRoll between 5 and 14)
+        else
         {
-            // NORMAL HIT
-            PerformNormalAttack(finalRoll);
+            yield return StartCoroutine(PerformNormalAttack(finalRoll));
         }
+    }
 
-        // After our turn, it's the enemy's turn
-        // (We'll add a delay so the player can read the message)
+    IEnumerator PerformNormalAttack(int finalRoll)
+    {
+        int damage = (playerStats.attack + finalRoll) - enemy.enemyData.defense;
+        if (damage < 1) damage = 1;
+
+        yield return StartCoroutine(ShowMessageAndWait($"You attack! Your roll of {finalRoll} deals {damage} damage."));
+
+        enemy.TakeDamage(damage);
+        UpdateEnemyUI();
+        StartCoroutine(EnemyTurn()); // Start the enemy's turn
+    }
+
+    IEnumerator PerformCritAttack(int finalRoll)
+    {
+        int damage = Mathf.RoundToInt((playerStats.attack + finalRoll) * 1.5f);
+        if (damage < 1) damage = 1;
+
+        yield return StartCoroutine(ShowMessageAndWait($"A critical hit! Your roll of {finalRoll} deals {damage} damage!"));
+
+        enemy.TakeDamage(damage);
+        UpdateEnemyUI();
         StartCoroutine(EnemyTurn());
     }
 
-    void PerformNormalAttack(int finalRoll)
+    // We can re-use the one from SkillData
+    IEnumerator PerformInstaKill(SkillData skill)
     {
-        int attackBonus = 0;
-        foreach (Buff buff in playerStats.activeBuffs)
+        if (skill != null)
+            yield return StartCoroutine(ShowMessageAndWait($"You used {skill.skillName}... a killing blow!"));
+        else
+            yield return StartCoroutine(ShowMessageAndWait($"NATURAL 20! A devastating blow!"));
+
+        if (enemy.enemyData.isBoss)
         {
-            if (buff.effect == SkillData.SkillEffect.BuffAttack)
-            {
-                attackBonus = 10;
-            }
+            yield return StartCoroutine(ShowMessageAndWait("It has no effect on this powerful foe!"));
         }
-
-        // Damage now includes the roll
-        int damage = (playerStats.attack + attackBonus + finalRoll) - enemy.enemyData.defense;
-        if (damage < 1) damage = 1;
-
-        ShowMessage($"You attack! Your roll of {finalRoll} deals {damage} damage.");
-
-        enemy.TakeDamage(damage);
-        UpdateEnemyUI();
-    }
-
-    void PerformCritAttack(int finalRoll)
-    {
-        int attackBonus = 0;
-        foreach (Buff buff in playerStats.activeBuffs)
+        else
         {
-            if (buff.effect == SkillData.SkillEffect.BuffAttack)
-            {
-                attackBonus = 10;
-            }
+            enemy.TakeDamage(9999);
+            UpdateEnemyUI();
         }
-
-        // Crit damage: 1.5x damage and ignores defense
-        int damage = Mathf.RoundToInt((playerStats.attack + attackBonus + finalRoll) * 1.5f);
-        if (damage < 1) damage = 1;
-
-        ShowMessage($"A critical hit! Your roll of {finalRoll} deals {damage} damage!");
-
-        enemy.TakeDamage(damage);
-        UpdateEnemyUI();
+        StartCoroutine(EnemyTurn());
     }
 
-    void PerformInstaKill(int roll)
+    IEnumerator PerformMiss(int finalRoll)
     {
-        ShowMessage($"NATURAL 20! A devastating blow!");
-
-        enemy.TakeDamage(999);
-        UpdateEnemyUI();
+        yield return StartCoroutine(ShowMessageAndWait($"You missed! (Your roll: {finalRoll})"));
+        StartCoroutine(EnemyTurn());
     }
 
-    void PerformMiss(int finalRoll)
-    {
-        ShowMessage($"You missed! (Your roll: {finalRoll})");
-    }
-
-    void ShowMessage(string message)
+    IEnumerator ShowMessageAndWait(string message)
     {
         commentText.SetText(message);
+
+        // TODO: You could show a little flashing "continue" arrow here
+
+        isWaitingForInput = true;
+        // Wait until the player presses the 'Z' key
+        yield return new WaitUntil(() => Input.GetKeyDown(KeyCode.Z));
+        isWaitingForInput = false;
+
+        // TODO: You would hide the "continue" arrow here
     }
 
     IEnumerator EnemyTurn()
     {
-        yield return new WaitForSeconds(2f);
-
         if (enemy.currentHealth > 0)
         {
             // --- ENEMY'S TURN LOGIC ---
-            ShowMessage($"The {enemy.enemyData.enemyName} attacks...");
+            yield return StartCoroutine(ShowMessageAndWait($"The {enemy.enemyData.enemyName} attacks..."));
+
             yield return new WaitForSeconds(1.5f);
 
             int roll = Random.Range(1, 21);
@@ -343,8 +348,9 @@ public class BattleManager : MonoBehaviour
 
             if (roll < 5)
             {
-                ShowMessage($"The {enemy.enemyData.enemyName} rolled a {roll} and missed!");
-                damageResult = new TakeDamageResult { messages = new List<string>(), thornsDamage = 0, healAmount = 0 };
+                yield return StartCoroutine(ShowMessageAndWait($"The {enemy.enemyData.enemyName} rolled a {roll} and missed!"));
+                // Create an empty result since no damage was dealt
+                damageResult = new TakeDamageResult();
             }
             else // This block handles both Crits and Normal hits
             {
@@ -369,32 +375,34 @@ public class BattleManager : MonoBehaviour
 
                 // 2. Update UI to show the DAMAGE
                 UpdatePlayerUI();
-                ShowMessage($"{message} {damage} damage!");
-                yield return new WaitForSeconds(1.5f);
-
-                // 3. Now, apply the HEAL (if any)
-                if (damageResult.healAmount > 0)
-                {
-                    playerStats.Heal(damageResult.healAmount);
-                    UpdatePlayerUI(); // Update UI again to show the heal
-                }
+                yield return StartCoroutine(ShowMessageAndWait($"{message} {damage} damage!"));
             }
 
-            // Loop through and show any messages (like "Guardian Angel heals...")
-            if (damageResult.messages.Count > 0)
+            // Wait for the attack message to be read
+
+            // 3. Check for and apply the HEAL (Guardian Angel)
+            if (damageResult.healAmount > 0)
             {
-                foreach (string msg in damageResult.messages)
-                {
-                    ShowMessage(msg);
-                    yield return new WaitForSeconds(1.5f);
-                }
+                playerStats.Heal(damageResult.healAmount);
+                UpdatePlayerUI(); // Update UI to show the heal
+                yield return StartCoroutine(ShowMessageAndWait(damageResult.healMessage));
             }
 
-            // AFTER all messages, apply thorns damage
+            // 4. Check for and apply THORNS
             if (damageResult.thornsDamage > 0)
             {
+                // Show message AND deal damage in the *same frame*
                 enemy.TakeDamage(damageResult.thornsDamage);
                 UpdateEnemyUI();
+
+                // Now wait for the player to read the message
+                yield return StartCoroutine(ShowMessageAndWait(damageResult.thornsMessage));
+
+                if (enemy.currentHealth <= 0)
+                {
+                    StartCoroutine(EnemyDefeated());
+                    yield break;
+                }
             }
 
             playerStats.TickDownBuffs();
@@ -405,18 +413,21 @@ public class BattleManager : MonoBehaviour
         }
         else
         {
-            ShowMessage($"You defeated the {enemy.enemyData.enemyName}!");
-
-            int xpGained = enemy.enemyData.xpYield + Random.Range(0, 20);
-            playerStats.GainXP(xpGained);
-
-            yield return new WaitForSeconds(1.5f);
-
-            ShowMessage($"You gained {xpGained} XP!");
-
-            yield return new WaitForSeconds(2.5f);
-            GameStatemanager.instance.EndBattle();
+            StartCoroutine(EnemyDefeated());
         }
+    }
+
+    IEnumerator EnemyDefeated()
+    {
+        yield return StartCoroutine(ShowMessageAndWait($"You defeated the {enemy.enemyData.enemyName}!"));
+
+        int xpGained = enemy.enemyData.xpYield + Random.Range(0, 20);
+        playerStats.GainXP(xpGained);
+
+
+        yield return StartCoroutine(ShowMessageAndWait($"You gained {xpGained} XP!"));
+
+        GameStatemanager.instance.EndBattle();
     }
 
     public void OnSkillButton()
@@ -429,7 +440,8 @@ public class BattleManager : MonoBehaviour
         // 2. Check if we even have skills
         if (battleSkills.Count == 0)
         {
-            ShowMessage("You have not learned any battle skills!");
+            // Call the new coroutine
+            StartCoroutine(ShowMessageAndWait("You have not learned any battle skills!"));
             return;
         }
 
@@ -452,13 +464,9 @@ public class BattleManager : MonoBehaviour
 
             GameObject newButtonObj = Instantiate(skillButtonPrefab, parentRow);
 
-            // Get the Button component
             Button newButton = newButtonObj.GetComponent<Button>();
-
-            // Get our custom script
             SkillButton skillButtonScript = newButtonObj.GetComponent<SkillButton>();
 
-            // Set its text (e.g., "Fire Slash   10 MP")
             skillButtonScript.Setup(currentSkill);
 
             // Add a listener to call OnSkillSelected
@@ -478,48 +486,45 @@ public class BattleManager : MonoBehaviour
         // 1. Check for mana
         if (playerStats.currentMana < selectedSkill.manaCost)
         {
-            ShowMessage("Not enough mana!");
-            return; // Stay in the skill menu
+            StartCoroutine(ShowMessageAndWait("Not enough mana!"));
+            return;
         }
 
-        // 2. Use the skill
-        isPlayerTurn = false;
-        SetButtonsInteractable(false); // Disable action buttons
-        currentState = BattleMenuState.ActionSelect;
+        // Start the skill sequence
+        StartCoroutine(SkillSequence(selectedSkill));
+    }
 
+    IEnumerator SkillSequence(SkillData selectedSkill)
+    {
+        isPlayerTurn = false;
+        SetButtonsInteractable(false);
+        currentState = BattleMenuState.ActionSelect;
         CleanupSkillList();
 
-        // 3. Spend the mana
         playerStats.UseMana(selectedSkill.manaCost);
         UpdatePlayerUI();
 
-        // 4. Use the switch to decide what logic to run
+        // Use the switch to decide what logic to run
         switch (selectedSkill.effect)
         {
             case SkillData.SkillEffect.Heal:
-                PerformHeal(selectedSkill);
+                yield return StartCoroutine(PerformHeal(selectedSkill));
                 break;
-
             case SkillData.SkillEffect.GuaranteedRoll:
-                PerformDamage(selectedSkill, 15); // Pass in 15 as the minimum roll
+                yield return StartCoroutine(PerformDamage(selectedSkill, 15));
                 break;
-
             case SkillData.SkillEffect.NormalDamage:
-                PerformDamage(selectedSkill, 1); // Pass in 1 as the minimum roll
+                yield return StartCoroutine(PerformDamage(selectedSkill, 1));
                 break;
-
             case SkillData.SkillEffect.InstantKill:
-                PerformInstantKill(selectedSkill);
+                yield return StartCoroutine(PerformInstaKill(selectedSkill));
                 break;
-
             case SkillData.SkillEffect.HealOnDamage:
-                playerStats.AddBuff(selectedSkill); // Add the buff to the player
-                ShowMessage($"You are protected by {selectedSkill.skillName}!");
+                playerStats.AddBuff(selectedSkill);
+                yield return StartCoroutine(ShowMessageAndWait($"You are protected by {selectedSkill.skillName}!"));
+                StartCoroutine(EnemyTurn());
                 break;
         }
-
-        // 5. Start the enemy's turn
-        StartCoroutine(EnemyTurn());
     }
 
     void GoBackToActions()
@@ -536,32 +541,27 @@ public class BattleManager : MonoBehaviour
     public void OnItemButton()
     {
         if (!isPlayerTurn) return;
-        ShowMessage("You have no items!");
-        // In the future, this will open the Item menu
+        StartCoroutine(ItemButtonSequence());
+    }
+
+    IEnumerator ItemButtonSequence()
+    {
+        yield return StartCoroutine(ShowMessageAndWait("You have no items!"));
     }
 
     public void OnRunButton()
     {
-        // Don't let the player run if it's not their turn
         if (!isPlayerTurn) return;
+        StartCoroutine(RunAwaySequence());
+    }
 
-        // Set state to prevent spamming
+    IEnumerator RunAwaySequence()
+    {
         isPlayerTurn = false;
         SetButtonsInteractable(false);
 
-        // Tell the GameStatemanager to end the battle
-        ShowMessage("You got away safely!");
+        yield return StartCoroutine(ShowMessageAndWait("You got away safely!"));
 
-        // We'll use a coroutine to add a small delay
-        StartCoroutine(RunAway());
-    }
-
-    IEnumerator RunAway()
-    {
-        // Wait for the message to be read
-        yield return new WaitForSeconds(1.5f);
-
-        // This is the function we built in GameStatemanager
         GameStatemanager.instance.EndBattle();
     }
 
@@ -591,27 +591,24 @@ public class BattleManager : MonoBehaviour
 
     // --- SKILL LOGIC HELPERS ---
 
-    void PerformHeal(SkillData skill)
+    IEnumerator PerformHeal(SkillData skill)
     {
-        // Heal for 30% of max HP
         int healAmount = Mathf.RoundToInt(playerStats.maxHealth * 0.3f);
         playerStats.Heal(healAmount);
         UpdatePlayerUI();
-        ShowMessage($"You used {skill.skillName} and healed {healAmount} HP!");
-
-        // Start the enemy's turn
+        yield return StartCoroutine(ShowMessageAndWait($"You used {skill.skillName} and healed {healAmount} HP!"));
         StartCoroutine(EnemyTurn());
     }
 
-    void PerformInstantKill(SkillData skill)
+    IEnumerator PerformInstantKill(SkillData skill)
     {
         if (enemy.enemyData.isBoss)
         {
-            ShowMessage("It has no effect on this powerful foe!");
+            yield return StartCoroutine(ShowMessageAndWait("It has no effect on this powerful foe!"));
         }
         else
         {
-            ShowMessage($"You used {skill.skillName}... a killing blow!");
+            yield return StartCoroutine(ShowMessageAndWait($"You used {skill.skillName}... a killing blow!"));
             enemy.TakeDamage(9999); // Insta-kill
             UpdateEnemyUI();
         }
@@ -620,7 +617,7 @@ public class BattleManager : MonoBehaviour
         StartCoroutine(EnemyTurn());
     }
 
-    void PerformDamage(SkillData skill, int minRoll)
+    IEnumerator PerformDamage(SkillData skill, int minRoll)
     {
         // 1. Get the roll
         int roll = Random.Range(1, 21);
@@ -629,11 +626,11 @@ public class BattleManager : MonoBehaviour
         if (minRoll > 1)
         {
             roll = Mathf.Max(roll, minRoll); // Guarantees a 15 or higher roll
-            ShowMessage($"You used {skill.skillName} for a guaranteed heavy hit!");
+            yield return StartCoroutine(ShowMessageAndWait($"You used {skill.skillName} for a guaranteed heavy hit!"));
         }
         else
         {
-            ShowMessage($"You used {skill.skillName}!");
+            yield return StartCoroutine(ShowMessageAndWait($"You used {skill.skillName}!"));
         }
 
         int finalRoll = roll + playerStats.luck;
@@ -694,10 +691,7 @@ public class BattleManager : MonoBehaviour
 
     IEnumerator ShowDamageMessage(int finalRoll, int damage, string effectMessage)
     {
-        yield return new WaitForSeconds(1f);
-        ShowMessage($"Your roll of {finalRoll} deals {damage} damage!{effectMessage}");
-
-        // Start the enemy's turn
+        yield return StartCoroutine(ShowMessageAndWait($"Your roll of {finalRoll} deals {damage} damage!{effectMessage}"));
         StartCoroutine(EnemyTurn());
     }
 }
