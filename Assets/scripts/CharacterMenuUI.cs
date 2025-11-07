@@ -41,17 +41,21 @@ public class CharacterMenuUI : MonoBehaviour
     private bool isInventoryOnScreen = true; // Start with inventory visible
     private bool isAnimating = false;
 
+    [Header("Stats Panel UI")]
+    public TextMeshProUGUI nameText;
+    public TextMeshProUGUI attackText;
+    public TextMeshProUGUI defenseText;
+    public TextMeshProUGUI luckText;
+    public TextMeshProUGUI levelText;
+
     void Start()
     {
-        Debug.Log("=== CHARACTER MENU CONTROLLER START ===");
-
         // Find player
         playerMovement = FindAnyObjectByType<PlayerMovement>();
 
         // Create inventory slots
         CreateSlots();
 
-        // --- NEW SLIDER START LOGIC ---
         // Get the root Canvas to calculate screen width
         Canvas rootCanvas = characterMenu.GetComponentInParent<Canvas>();
 
@@ -64,13 +68,13 @@ public class CharacterMenuUI : MonoBehaviour
         // Set initial positions (skill tree starts hidden)
         statsAndInventoryGroup.anchoredPosition = onScreenPos;
         skillTreeGroup.anchoredPosition = offScreenPosRight;
-        // --- END OF NEW START LOGIC ---
 
         // Subscribe to PlayerStats event ONE TIME.
         // Since this script is always active, it will always listen.
         if (PlayerStats.instance != null)
         {
             PlayerStats.instance.OnStatsChanged += UpdateSkillPoints;
+            PlayerStats.instance.OnStatsChanged += UpdateStatsText;
         }
 
         // Start with menu closed
@@ -125,6 +129,18 @@ public class CharacterMenuUI : MonoBehaviour
         }
     }
 
+    void UpdateStatsText()
+    {
+        if (PlayerStats.instance == null) return;
+
+        // Read from the persistent PlayerStats
+        nameText.text = PlayerStats.instance.playerName;
+        levelText.text = "Level: " + PlayerStats.instance.level;
+        attackText.text = "Attack: " + PlayerStats.instance.attack;
+        defenseText.text = "Defense: " + PlayerStats.instance.defense;
+        luckText.text = "Luck: " + PlayerStats.instance.luck;
+    }
+
     // --- MENU OPEN/CLOSE FUNCTIONS ---
 
     void ToggleMenu()
@@ -155,6 +171,7 @@ public class CharacterMenuUI : MonoBehaviour
         // Update UI
         UpdateSlotSelection();
         UpdateSkillPoints();
+        UpdateStatsText();
     }
 
     void CloseMenu()

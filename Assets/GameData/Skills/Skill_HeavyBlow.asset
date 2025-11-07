@@ -20,3 +20,5 @@ MonoBehaviour:
   boostAmount: 0
   manaCost: 5
   element: 0
+  effect: 2
+  buffDuration: 0

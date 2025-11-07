@@ -992,6 +992,11 @@ MonoBehaviour:
   skillDescriptionText: {fileID: 620656465}
   slideSpeed: 8
   startingNode: {fileID: 1327620014}
+  nameText: {fileID: 79450341}
+  attackText: {fileID: 1955645570}
+  defenseText: {fileID: 1965557885}
+  luckText: {fileID: 15024298}
+  levelText: {fileID: 416092733}
 --- !u!4 &260438290
 Transform:
   m_ObjectHideFlags: 0
@@ -1016,7 +1021,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 265518879}
-  - component: {fileID: 265518880}
   m_Layer: 5
   m_Name: CharacterMenu
   m_TagString: Untagged
@@ -1045,24 +1049,6 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 100, y: 100}
   m_Pivot: {x: 0.5, y: 0.5}
---- !u!114 &265518880
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 265518878}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: b7c2f0a7f6080ed418423a311bd81b22, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: '::'
-  playerStats: {fileID: 1070835632}
-  nameText: {fileID: 79450341}
-  attackText: {fileID: 1955645570}
-  defenseText: {fileID: 1965557885}
-  luckText: {fileID: 15024298}
-  levelText: {fileID: 416092733}
 --- !u!1 &308939036
 GameObject:
   m_ObjectHideFlags: 0
@@ -1111,7 +1097,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EncounterZone
   possibleEnemies:
-  - {fileID: 11400000, guid: 5d08fafbf6e1b524fa7fb572e7a38548, type: 2}
+  - {fileID: 11400000, guid: 325978c7c4fa7494b99e52144c847e2a, type: 2}
+  - {fileID: 11400000, guid: 426598ec169acc74d8e8cc2fbc2a98ba, type: 2}
   encounterChance: 0.65
 --- !u!19719996 &308939039
 TilemapCollider2D:
@@ -4353,6 +4340,7 @@ MonoBehaviour:
   currentXP: 0
   xpToNextLevel: 100
   unlockedSkills: []
+  activeBuffs: []
 --- !u!95 &1070835633
 Animator:
   serializedVersion: 7
@@ -4839,9 +4827,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d98b673809015da4a823b69729550925, type: 3}
   m_Name: 
   m_EditorClassIdentifier: '::'
-  healthFill: {fileID: 1808631157}
-  manaFill: {fileID: 1737556372}
-  xpFill: {fileID: 1614838356}
+  healthFill: {fileID: 146599134}
+  manaFill: {fileID: 323330081}
+  xpFill: {fileID: 421452705}
   healthText: {fileID: 2014133116}
   manaText: {fileID: 119254813}
   xpText: {fileID: 1393673346}

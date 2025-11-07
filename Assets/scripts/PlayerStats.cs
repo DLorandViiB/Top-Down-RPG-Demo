@@ -38,6 +38,7 @@ public class PlayerStats : MonoBehaviour
 
     [Header("Skills")]
     public List<SkillData> unlockedSkills = new List<SkillData>();
+    public List<Buff> activeBuffs = new List<Buff>();
 
     public event Action OnStatsChanged;
 
@@ -49,13 +50,18 @@ public class PlayerStats : MonoBehaviour
         OnStatsChanged?.Invoke();
     }
 
-    public void TakeDamage(int damage)
+    public List<string> TakeDamage(int damage)
     {
+        List<string> messages = new List<string>();
         int finalDamage = Mathf.Max(damage - defense, 1);
         currentHealth -= finalDamage;
         if (currentHealth < 0) currentHealth = 0;
 
         OnStatsChanged?.Invoke();
+
+        // Check for buffs and get any messages from them
+        messages.AddRange(CheckBuffsOnDamage(finalDamage));
+        return messages;
     }
 
     public void GainXP(int amount)
@@ -143,5 +149,60 @@ public class PlayerStats : MonoBehaviour
             maxMana += skill.boostAmount;
             currentMana = maxMana;
         }
+    }
+
+    // BattleManager will call this to add the buff
+    public void AddBuff(SkillData skill)
+    {
+        // 1. Check if a buff of this type already exists
+        foreach (Buff buff in activeBuffs)
+        {
+            if (buff.effect == skill.effect)
+            {
+                // 2. It exists! Reset its duration.
+                buff.duration = skill.buffDuration;
+                Debug.Log($"Buff '{skill.skillName}' duration reset to {skill.buffDuration}.");
+                return;
+            }
+        }
+
+        // 3. If we're here, it's a new buff. Add it normally.
+        Buff newBuff = new Buff();
+        newBuff.effect = skill.effect;
+        newBuff.duration = skill.buffDuration;
+
+        activeBuffs.Add(newBuff);
+    }
+
+    // BattleManager will call this at the END of the player's turn
+    public void TickDownBuffs()
+    {
+        // Loop backwards so we can safely remove items
+        for (int i = activeBuffs.Count - 1; i >= 0; i--)
+        {
+            activeBuffs[i].duration--;
+            if (activeBuffs[i].duration <= 0)
+            {
+                // Buff has expired
+                activeBuffs.RemoveAt(i);
+            }
+        }
+    }
+
+    // This is a private helper, called by TakeDamage
+    private List<string> CheckBuffsOnDamage(int damageTaken)
+    {
+        List<string> messages = new List<string>();
+        foreach (Buff buff in activeBuffs)
+        {
+            if (buff.effect == SkillData.SkillEffect.HealOnDamage)
+            {
+                int healAmount = 10;
+                Heal(healAmount);
+                // Add the message to our list instead of invoking an event
+                messages.Add($"Guardian Angel heals you for {healAmount} HP!");
+            }
+        }
+        return messages;
     }
 }

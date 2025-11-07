@@ -321,38 +321,49 @@ public class BattleManager : MonoBehaviour
             yield return new WaitForSeconds(1.5f);
 
             int roll = Random.Range(1, 21);
+            List<string> buffMessages = new List<string>(); // List to hold buff messages
 
             if (roll < 5)
             {
-                // MISS
                 ShowMessage($"The {enemy.enemyData.enemyName} rolled a {roll} and missed!");
             }
             else if (roll >= 15)
             {
-                // CRITICAL HIT
                 int damage = Mathf.RoundToInt((enemy.enemyData.attack + roll) * 1.5f) - playerStats.defense;
                 if (damage < 1) damage = 1;
 
-                playerStats.TakeDamage(damage);
+                buffMessages = playerStats.TakeDamage(damage); // Get buff messages
                 UpdatePlayerUI();
                 ShowMessage($"A critical hit! The enemy rolled a {roll} and deals {damage} damage!");
             }
             else
             {
-                // NORMAL HIT
                 int damage = (enemy.enemyData.attack + roll) - playerStats.defense;
                 if (damage < 1) damage = 1;
 
-                playerStats.TakeDamage(damage);
+                buffMessages = playerStats.TakeDamage(damage); // Get buff messages
                 UpdatePlayerUI();
                 ShowMessage($"The enemy rolled a {roll} and deals {damage} damage!");
             }
 
-            yield return new WaitForSeconds(2f);
+            // Wait for the attack message to be read
+            yield return new WaitForSeconds(1.5f);
+
+            // Now, loop through and show any buff messages
+            if (buffMessages.Count > 0)
+            {
+                foreach (string msg in buffMessages)
+                {
+                    ShowMessage(msg);
+                    yield return new WaitForSeconds(1.5f); // Wait for each buff message
+                }
+            }
+
+            playerStats.TickDownBuffs();
+
             SetButtonsInteractable(true);
             isPlayerTurn = true;
             actionButtons[currentActionIndex].Select();
-
         }
         else
         {
@@ -436,14 +447,38 @@ public class BattleManager : MonoBehaviour
         // 2. Use the skill
         isPlayerTurn = false;
         SetButtonsInteractable(false); // Disable action buttons
-        GoBackToActions();
+        currentState = BattleMenuState.ActionSelect;
+
+        CleanupSkillList();
 
         // 3. Spend the mana
         playerStats.UseMana(selectedSkill.manaCost);
         UpdatePlayerUI();
 
-        // 4. TODO: Add logic for each skill (Heal, Fire Slash, etc.)
-        ShowMessage($"You used {selectedSkill.skillName}!");
+        // 4. Use the switch to decide what logic to run
+        switch (selectedSkill.effect)
+        {
+            case SkillData.SkillEffect.Heal:
+                PerformHeal(selectedSkill);
+                break;
+
+            case SkillData.SkillEffect.GuaranteedRoll:
+                PerformDamage(selectedSkill, 15); // Pass in 15 as the minimum roll
+                break;
+
+            case SkillData.SkillEffect.NormalDamage:
+                PerformDamage(selectedSkill, 1); // Pass in 1 as the minimum roll
+                break;
+
+            case SkillData.SkillEffect.InstantKill:
+                PerformInstantKill(selectedSkill);
+                break;
+
+            case SkillData.SkillEffect.HealOnDamage:
+                playerStats.AddBuff(selectedSkill); // Add the buff to the player
+                ShowMessage($"You are protected by {selectedSkill.skillName}!");
+                break;
+        }
 
         // 5. Start the enemy's turn
         StartCoroutine(EnemyTurn());
@@ -452,17 +487,10 @@ public class BattleManager : MonoBehaviour
     void GoBackToActions()
     {
         currentState = BattleMenuState.ActionSelect;
-        skillListPanel.SetActive(false); // Hide the skill grid
-        SetButtonsInteractable(true);
+        SetButtonsInteractable(true); // Re-enables the 2x2 grid
+        CleanupSkillList(); // Call our new helper function
 
-        foreach (Transform child in skillRow1) { Destroy(child.gameObject); }
-        foreach (Transform child in skillRow2) { Destroy(child.gameObject); }
-        if (currentSkillButtons.Count > 0)
-        {
-            currentSkillButtons[currentSkillIndex].Deselect();
-        }
-        currentSkillButtons.Clear();
-
+        // Re-select the "SKILL" button
         currentActionIndex = 1;
         actionButtons[currentActionIndex].Select();
     }
@@ -505,5 +533,124 @@ public class BattleManager : MonoBehaviour
         {
             button.interactable = state;
         }
+    }
+
+    void CleanupSkillList()
+    {
+        skillListPanel.SetActive(false); // Hide the skill grid
+
+        // Deselect the last highlighted skill
+        if (currentSkillButtons.Count > 0 && currentSkillIndex < currentSkillButtons.Count)
+        {
+            currentSkillButtons[currentSkillIndex].Deselect();
+        }
+
+        // Clean up the buttons
+        foreach (Transform child in skillRow1) { Destroy(child.gameObject); }
+        foreach (Transform child in skillRow2) { Destroy(child.gameObject); }
+        currentSkillButtons.Clear();
+    }
+
+    // --- SKILL LOGIC HELPERS ---
+
+    void PerformHeal(SkillData skill)
+    {
+        // Heal for 30% of max HP
+        int healAmount = Mathf.RoundToInt(playerStats.maxHealth * 0.3f);
+        playerStats.Heal(healAmount);
+        UpdatePlayerUI();
+        ShowMessage($"You used {skill.skillName} and healed {healAmount} HP!");
+
+        // Start the enemy's turn
+        StartCoroutine(EnemyTurn());
+    }
+
+    void PerformInstantKill(SkillData skill)
+    {
+        if (enemy.enemyData.isBoss)
+        {
+            ShowMessage("It has no effect on this powerful foe!");
+        }
+        else
+        {
+            ShowMessage($"You used {skill.skillName}... a killing blow!");
+            enemy.TakeDamage(9999); // Insta-kill
+            UpdateEnemyUI();
+        }
+
+        // Start the enemy's turn (even if it's dead, to process the win)
+        StartCoroutine(EnemyTurn());
+    }
+
+    void PerformDamage(SkillData skill, int minRoll)
+    {
+        // 1. Get the roll
+        int roll = Random.Range(1, 21);
+
+        // Check for "Heavy Blow"
+        if (minRoll > 1)
+        {
+            roll = Mathf.Max(roll, minRoll); // Guarantees a 15 or higher roll
+            ShowMessage($"You used {skill.skillName} for a guaranteed heavy hit!");
+        }
+        else
+        {
+            ShowMessage($"You used {skill.skillName}!");
+        }
+
+        int finalRoll = roll + playerStats.luck;
+
+        // 2. Calculate base damage
+        int damage = (playerStats.attack + finalRoll) - enemy.enemyData.defense;
+        if (damage < 1) damage = 1;
+
+        // 3. Check for elemental weakness/resistance
+        float multiplier = 1.0f;
+        string effectMessage = "";
+
+        // Check Fire vs Ice
+        if (skill.element == SkillData.ElementType.Fire && enemy.enemyData.element == EnemyData.ElementType.Ice)
+        {
+            multiplier = 2.0f;
+            effectMessage = $"The {enemy.enemyData.enemyName} takes heavy damage!";
+        }
+        // Check Ice vs Fire
+        else if (skill.element == SkillData.ElementType.Ice && enemy.enemyData.element == EnemyData.ElementType.Fire)
+        {
+            multiplier = 2.0f;
+            effectMessage = $"The {enemy.enemyData.enemyName} takes heavy damage!";
+        }
+
+        // Check Fire vs Fire
+        if (skill.element == SkillData.ElementType.Fire && enemy.enemyData.element == EnemyData.ElementType.Fire)
+        {
+            multiplier = 0.5f;
+            effectMessage = $"The {enemy.enemyData.enemyName} takes light damage!";
+        }
+        // Check Ice vs Ice
+        else if (skill.element == SkillData.ElementType.Ice && enemy.enemyData.element == EnemyData.ElementType.Ice)
+        {
+            multiplier = 0.5f;
+            effectMessage = $"The {enemy.enemyData.enemyName} takes light damage!";
+        }
+
+        // 4. Apply multiplier
+        damage = Mathf.RoundToInt(damage * multiplier);
+
+        // 5. Deal damage and show message
+        enemy.TakeDamage(damage);
+        UpdateEnemyUI();
+
+        // We'll show the message in a coroutine to add a delay
+        StartCoroutine(ShowDamageMessage(finalRoll, damage, effectMessage));
+    }
+
+    IEnumerator ShowDamageMessage(int finalRoll, int damage, string effectMessage)
+    {
+        yield return new WaitForSeconds(1f);
+        ShowMessage($"Your roll of {finalRoll} deals {damage} damage!{effectMessage}");
+
+        // Start the enemy's turn
+        StartCoroutine(EnemyTurn());
     }
 }

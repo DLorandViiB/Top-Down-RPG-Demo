@@ -9,6 +9,8 @@ public class SkillData : ScriptableObject
     public enum StatToBoost { None, MaxHealth, MaxMana }
     public enum ElementType { None, Fire, Ice }
 
+    public enum SkillEffect { NormalDamage, Heal, GuaranteedRoll, InstantKill, HealOnDamage }
+
     // --- Then we define all our fields (variables) ---
     public string skillName;
     [TextArea(3, 10)] // Makes the description box bigger in the Inspector
@@ -26,4 +28,6 @@ public class SkillData : ScriptableObject
     [Header("Battle Skill")] // This is also correctly placed
     public int manaCost;
     public ElementType element;
+    public SkillEffect effect;
+    public int buffDuration;
 }
