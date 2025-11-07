@@ -9,7 +9,15 @@ public class SkillData : ScriptableObject
     public enum StatToBoost { None, MaxHealth, MaxMana }
     public enum ElementType { None, Fire, Ice }
 
-    public enum SkillEffect { NormalDamage, Heal, GuaranteedRoll, InstantKill, HealOnDamage }
+    public enum SkillEffect { 
+        NormalDamage, 
+        Heal, 
+        GuaranteedRoll, 
+        InstantKill, 
+        HealOnDamage,
+        BuffAttack,
+        Thorns
+    }
 
     // --- Then we define all our fields (variables) ---
     public string skillName;

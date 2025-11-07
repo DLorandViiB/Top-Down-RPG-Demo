@@ -15,7 +15,7 @@ public class CharacterMenuUI : MonoBehaviour
     [Header("Inventory Panel")]
     public GameObject slotPrefab;
     public Transform inventoryPanel; // The 'InventoryBackground' grid
-    public int columns = 5;
+    public int columns = 6;
     private List<GameObject> slots = new List<GameObject>();
     private int selectedSlotIndex = 0;
 
@@ -27,6 +27,10 @@ public class CharacterMenuUI : MonoBehaviour
     public TextMeshProUGUI skillPointsText;
     public TextMeshProUGUI skillNameText;
     public TextMeshProUGUI skillDescriptionText;
+
+    [Header("Item Description")]
+    public TextMeshProUGUI itemDescriptionNameText;
+    public TextMeshProUGUI itemDescriptionText;
 
     [Header("Slide Settings")]
     public float slideSpeed = 8f;
@@ -47,6 +51,7 @@ public class CharacterMenuUI : MonoBehaviour
     public TextMeshProUGUI defenseText;
     public TextMeshProUGUI luckText;
     public TextMeshProUGUI levelText;
+    public TextMeshProUGUI buffListText;
 
     void Start()
     {
@@ -67,15 +72,16 @@ public class CharacterMenuUI : MonoBehaviour
 
         // Set initial positions (skill tree starts hidden)
         statsAndInventoryGroup.anchoredPosition = onScreenPos;
-        skillTreeGroup.anchoredPosition = offScreenPosRight;
+        skillTreeGroup.anchoredPosition = offScreenPosRight;  
 
-        // Subscribe to PlayerStats event ONE TIME.
-        // Since this script is always active, it will always listen.
-        if (PlayerStats.instance != null)
+        if (InventoryManager.instance != null)
         {
-            PlayerStats.instance.OnStatsChanged += UpdateSkillPoints;
-            PlayerStats.instance.OnStatsChanged += UpdateStatsText;
+            InventoryManager.instance.OnInventoryChanged += RedrawInventory;
         }
+
+        RedrawInventory();
+
+        PlayerStats.instance.OnStatsChanged += UpdateBuffListUI;
 
         // Start with menu closed
         characterMenu.SetActive(false);
@@ -163,6 +169,13 @@ public class CharacterMenuUI : MonoBehaviour
             playerMovement.StopMovement();
         }
 
+        if (PlayerStats.instance != null)
+        {
+            PlayerStats.instance.OnStatsChanged += UpdateSkillPoints;
+            PlayerStats.instance.OnStatsChanged += UpdateStatsText;
+            PlayerStats.instance.OnStatsChanged += UpdateBuffListUI;
+        }
+
         // Reset to inventory view every time menu opens
         isInventoryOnScreen = true;
         statsAndInventoryGroup.anchoredPosition = onScreenPos;
@@ -172,6 +185,7 @@ public class CharacterMenuUI : MonoBehaviour
         UpdateSlotSelection();
         UpdateSkillPoints();
         UpdateStatsText();
+        UpdateBuffListUI();
     }
 
     void CloseMenu()
@@ -186,13 +200,21 @@ public class CharacterMenuUI : MonoBehaviour
         {
             playerMovement.canMove = true;
         }
+
+        if (PlayerStats.instance != null)
+        {
+            PlayerStats.instance.OnStatsChanged -= UpdateSkillPoints;
+            PlayerStats.instance.OnStatsChanged -= UpdateStatsText;
+            PlayerStats.instance.OnStatsChanged -= UpdateBuffListUI;
+        }
+
+        buffListText.text = "";
     }
 
     // --- NAVIGATION FUNCTIONS ---
 
     void HandleMenuNavigation()
     {
-        // ... (This is your old inventory navigation, it's perfect)
         if (slots.Count == 0) return;
         var keyboard = Keyboard.current;
         if (keyboard == null) return;
@@ -203,6 +225,60 @@ public class CharacterMenuUI : MonoBehaviour
         else if (keyboard.downArrowKey.wasPressedThisFrame) selectedSlotIndex += columns;
         selectedSlotIndex = Mathf.Clamp(selectedSlotIndex, 0, slots.Count - 1);
         if (selectedSlotIndex != previousIndex) { UpdateSlotSelection(); }
+
+        if (keyboard.zKey.wasPressedThisFrame)
+        {
+            // Get the slot we're on
+            InventorySlot slotToUse = InventoryManager.instance.slots[selectedSlotIndex];
+
+            // Check if it's usable in the menu
+            if (slotToUse.item != null && slotToUse.item.canUseInMenu)
+            {
+                // Try to use it
+                InventoryManager.instance.UseItem(slotToUse);
+                // OnInventoryChanged will auto-redraw the slots
+                // OnStatsChanged will auto-update our HP/MP/Buffs
+            }
+            else
+            {
+                // Play a "fail" sound
+            }
+        }
+    }
+
+    void RedrawInventory()
+    {
+        for (int i = 0; i < slots.Count; i++)
+        {
+            // Get the data for this slot from the "brain" (InventoryManager)
+            InventorySlot dataSlot = InventoryManager.instance.slots[i];
+
+            // Get the UI components from our visual slot
+            Image icon = slots[i].transform.Find("Icon").GetComponent<Image>();
+            TextMeshProUGUI quantityText = slots[i].transform.Find("QuantityText").GetComponent<TextMeshProUGUI>();
+
+            if (dataSlot.item != null)
+            {
+                // Slot is NOT empty:
+                icon.gameObject.SetActive(true);
+                icon.sprite = dataSlot.item.icon;
+
+                if (dataSlot.quantity > 1)
+                {
+                    quantityText.text = dataSlot.quantity.ToString();
+                }
+                else
+                {
+                    quantityText.text = "";
+                }
+            }
+            else
+            {
+                // Slot is empty:
+                icon.gameObject.SetActive(false);
+                quantityText.text = "";
+            }
+        }
     }
 
     void HandleSkillTreeNavigation()
@@ -280,15 +356,28 @@ public class CharacterMenuUI : MonoBehaviour
     void UpdateSlotSelection()
     {
         if (slots.Count == 0) return;
+
         for (int i = 0; i < slots.Count; i++)
         {
             Transform highlight = slots[i].transform.Find("Highlight");
-            if (highlight != null) highlight.gameObject.SetActive(false);
+            if (highlight != null)
+                highlight.gameObject.SetActive(i == selectedSlotIndex);
         }
-        if (selectedSlotIndex >= 0 && selectedSlotIndex < slots.Count)
+
+        // Now, update the description box based on the selected slot
+        InventorySlot selectedSlotData = InventoryManager.instance.slots[selectedSlotIndex];
+
+        if (selectedSlotData.item != null)
         {
-            Transform highlight = slots[selectedSlotIndex].transform.Find("Highlight");
-            if (highlight != null) highlight.gameObject.SetActive(true);
+            // We've selected a slot WITH an item
+            itemDescriptionNameText.text = selectedSlotData.item.itemName;
+            itemDescriptionText.text = selectedSlotData.item.description;
+        }
+        else
+        {
+            // We've selected an EMPTY slot
+            itemDescriptionNameText.text = "";
+            itemDescriptionText.text = "";
         }
     }
 
@@ -297,7 +386,7 @@ public class CharacterMenuUI : MonoBehaviour
         if (slotPrefab == null || inventoryPanel == null) return;
         foreach (Transform child in inventoryPanel) { Destroy(child.gameObject); }
         slots.Clear();
-        for (int i = 0; i < 20; i++)
+        for (int i = 0; i < 24; i++)
         {
             GameObject slot = Instantiate(slotPrefab, inventoryPanel);
             slots.Add(slot);
@@ -364,5 +453,39 @@ public class CharacterMenuUI : MonoBehaviour
 
         skillNameText.text = currentNode.skillData.skillName;
         skillDescriptionText.text = currentNode.skillData.description;
+    }
+
+    void UpdateBuffListUI()
+    {
+        if (PlayerStats.instance == null || buffListText == null) return;
+
+        buffListText.text = "Active Buffs:\n";
+
+        if (PlayerStats.instance.activeBuffs.Count == 0)
+        {
+            buffListText.text += "None";
+            return;
+        }
+
+        foreach (Buff buff in PlayerStats.instance.activeBuffs)
+        {
+            // This will show "BuffAttack (3 Turns)"
+            buffListText.text += $"{buff.effect.ToString()} ({buff.duration} Turns)\n";
+        }
+    }
+
+    void OnDestroy()
+    {
+        if (InventoryManager.instance != null)
+        {
+            InventoryManager.instance.OnInventoryChanged -= RedrawInventory;
+        }
+
+        if (PlayerStats.instance != null)
+        {
+            PlayerStats.instance.OnStatsChanged -= UpdateSkillPoints;
+            PlayerStats.instance.OnStatsChanged -= UpdateStatsText;
+            PlayerStats.instance.OnStatsChanged -= UpdateBuffListUI;
+        }
     }
 }

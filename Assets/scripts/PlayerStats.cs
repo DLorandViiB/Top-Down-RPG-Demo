@@ -2,6 +2,13 @@ using UnityEngine;
 using System;
 using System.Collections.Generic;
 
+public struct TakeDamageResult
+{
+    public List<string> messages;
+    public int thornsDamage;
+    public int healAmount;
+}
+
 public class PlayerStats : MonoBehaviour
 {
     public static PlayerStats instance;
@@ -50,18 +57,17 @@ public class PlayerStats : MonoBehaviour
         OnStatsChanged?.Invoke();
     }
 
-    public List<string> TakeDamage(int damage)
+    public TakeDamageResult TakeDamage(int damage)
     {
-        List<string> messages = new List<string>();
         int finalDamage = Mathf.Max(damage - defense, 1);
         currentHealth -= finalDamage;
         if (currentHealth < 0) currentHealth = 0;
 
         OnStatsChanged?.Invoke();
 
-        // Check for buffs and get any messages from them
-        messages.AddRange(CheckBuffsOnDamage(finalDamage));
-        return messages;
+        // Check for buffs and get the result
+        TakeDamageResult result = CheckBuffsOnDamage(finalDamage);
+        return result;
     }
 
     public void GainXP(int amount)
@@ -101,6 +107,12 @@ public class PlayerStats : MonoBehaviour
     public void Heal(int amount)
     {
         currentHealth = Mathf.Min(currentHealth + amount, maxHealth);
+        OnStatsChanged?.Invoke();
+    }
+
+    public void RestoreMana(int amount)
+    {
+        currentMana = Mathf.Min(currentMana + amount, maxMana);
         OnStatsChanged?.Invoke();
     }
 
@@ -162,6 +174,7 @@ public class PlayerStats : MonoBehaviour
                 // 2. It exists! Reset its duration.
                 buff.duration = skill.buffDuration;
                 Debug.Log($"Buff '{skill.skillName}' duration reset to {skill.buffDuration}.");
+                OnStatsChanged?.Invoke();
                 return;
             }
         }
@@ -171,6 +184,22 @@ public class PlayerStats : MonoBehaviour
         newBuff.effect = skill.effect;
         newBuff.duration = skill.buffDuration;
 
+        activeBuffs.Add(newBuff);
+        OnStatsChanged?.Invoke();
+    }
+
+    public void AddBuff(Buff newBuff)
+    {
+        // Check if a buff of this type already exists
+        foreach (Buff buff in activeBuffs)
+        {
+            if (buff.effect == newBuff.effect)
+            {
+                buff.duration = newBuff.duration;
+                return;
+            }
+        }
+        // If not, add the new one
         activeBuffs.Add(newBuff);
     }
 
@@ -190,19 +219,33 @@ public class PlayerStats : MonoBehaviour
     }
 
     // This is a private helper, called by TakeDamage
-    private List<string> CheckBuffsOnDamage(int damageTaken)
+    private TakeDamageResult CheckBuffsOnDamage(int damageTaken)
     {
-        List<string> messages = new List<string>();
+        TakeDamageResult result = new TakeDamageResult();
+        result.messages = new List<string>();
+        result.thornsDamage = 0;
+        result.healAmount = 0; // <-- ADD THIS
+
         foreach (Buff buff in activeBuffs)
         {
             if (buff.effect == SkillData.SkillEffect.HealOnDamage)
             {
                 int healAmount = 10;
-                Heal(healAmount);
-                // Add the message to our list instead of invoking an event
-                messages.Add($"Guardian Angel heals you for {healAmount} HP!");
+                result.healAmount = healAmount;
+                result.messages.Add($"Guardian Angel heals you for {healAmount} HP!");
+            }
+            if (buff.effect == SkillData.SkillEffect.Thorns)
+            {
+                int thornDamage = 15;
+                result.thornsDamage = thornDamage;
+                result.messages.Add($"Your thorns deal {thornDamage} damage to the enemy!");
             }
         }
-        return messages;
+        return result;
+    }
+
+    public void ClearAllBuffs()
+    {
+        activeBuffs.Clear();
     }
 }

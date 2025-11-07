@@ -270,8 +270,17 @@ public class BattleManager : MonoBehaviour
 
     void PerformNormalAttack(int finalRoll)
     {
+        int attackBonus = 0;
+        foreach (Buff buff in playerStats.activeBuffs)
+        {
+            if (buff.effect == SkillData.SkillEffect.BuffAttack)
+            {
+                attackBonus = 10;
+            }
+        }
+
         // Damage now includes the roll
-        int damage = (playerStats.attack + finalRoll) - enemy.enemyData.defense;
+        int damage = (playerStats.attack + attackBonus + finalRoll) - enemy.enemyData.defense;
         if (damage < 1) damage = 1;
 
         ShowMessage($"You attack! Your roll of {finalRoll} deals {damage} damage.");
@@ -282,8 +291,17 @@ public class BattleManager : MonoBehaviour
 
     void PerformCritAttack(int finalRoll)
     {
+        int attackBonus = 0;
+        foreach (Buff buff in playerStats.activeBuffs)
+        {
+            if (buff.effect == SkillData.SkillEffect.BuffAttack)
+            {
+                attackBonus = 10;
+            }
+        }
+
         // Crit damage: 1.5x damage and ignores defense
-        int damage = Mathf.RoundToInt((playerStats.attack + finalRoll) * 1.5f);
+        int damage = Mathf.RoundToInt((playerStats.attack + attackBonus + finalRoll) * 1.5f);
         if (damage < 1) damage = 1;
 
         ShowMessage($"A critical hit! Your roll of {finalRoll} deals {damage} damage!");
@@ -321,42 +339,62 @@ public class BattleManager : MonoBehaviour
             yield return new WaitForSeconds(1.5f);
 
             int roll = Random.Range(1, 21);
-            List<string> buffMessages = new List<string>(); // List to hold buff messages
+            TakeDamageResult damageResult;
 
             if (roll < 5)
             {
                 ShowMessage($"The {enemy.enemyData.enemyName} rolled a {roll} and missed!");
+                damageResult = new TakeDamageResult { messages = new List<string>(), thornsDamage = 0, healAmount = 0 };
             }
-            else if (roll >= 15)
+            else // This block handles both Crits and Normal hits
             {
-                int damage = Mathf.RoundToInt((enemy.enemyData.attack + roll) * 1.5f) - playerStats.defense;
+                int damage;
+                string message;
+
+                if (roll >= 15) // Crit
+                {
+                    damage = Mathf.RoundToInt((enemy.enemyData.attack + roll) * 1.5f) - playerStats.defense;
+                    message = $"A critical hit! The enemy rolled a {roll} and deals";
+                }
+                else // Normal
+                {
+                    damage = (enemy.enemyData.attack + roll) - playerStats.defense;
+                    message = $"The enemy rolled a {roll} and deals";
+                }
+
                 if (damage < 1) damage = 1;
 
-                buffMessages = playerStats.TakeDamage(damage); // Get buff messages
+                // 1. Take damage and get the results
+                damageResult = playerStats.TakeDamage(damage);
+
+                // 2. Update UI to show the DAMAGE
                 UpdatePlayerUI();
-                ShowMessage($"A critical hit! The enemy rolled a {roll} and deals {damage} damage!");
+                ShowMessage($"{message} {damage} damage!");
+                yield return new WaitForSeconds(1.5f);
+
+                // 3. Now, apply the HEAL (if any)
+                if (damageResult.healAmount > 0)
+                {
+                    playerStats.Heal(damageResult.healAmount);
+                    UpdatePlayerUI(); // Update UI again to show the heal
+                }
             }
-            else
+
+            // Loop through and show any messages (like "Guardian Angel heals...")
+            if (damageResult.messages.Count > 0)
             {
-                int damage = (enemy.enemyData.attack + roll) - playerStats.defense;
-                if (damage < 1) damage = 1;
-
-                buffMessages = playerStats.TakeDamage(damage); // Get buff messages
-                UpdatePlayerUI();
-                ShowMessage($"The enemy rolled a {roll} and deals {damage} damage!");
-            }
-
-            // Wait for the attack message to be read
-            yield return new WaitForSeconds(1.5f);
-
-            // Now, loop through and show any buff messages
-            if (buffMessages.Count > 0)
-            {
-                foreach (string msg in buffMessages)
+                foreach (string msg in damageResult.messages)
                 {
                     ShowMessage(msg);
-                    yield return new WaitForSeconds(1.5f); // Wait for each buff message
+                    yield return new WaitForSeconds(1.5f);
                 }
+            }
+
+            // AFTER all messages, apply thorns damage
+            if (damageResult.thornsDamage > 0)
+            {
+                enemy.TakeDamage(damageResult.thornsDamage);
+                UpdateEnemyUI();
             }
 
             playerStats.TickDownBuffs();
@@ -600,8 +638,17 @@ public class BattleManager : MonoBehaviour
 
         int finalRoll = roll + playerStats.luck;
 
+        int attackBonus = 0;
+        foreach (Buff buff in playerStats.activeBuffs)
+        {
+            if (buff.effect == SkillData.SkillEffect.BuffAttack)
+            {
+                attackBonus = 10;
+            }
+        }
+
         // 2. Calculate base damage
-        int damage = (playerStats.attack + finalRoll) - enemy.enemyData.defense;
+        int damage = (playerStats.attack + attackBonus + finalRoll) - enemy.enemyData.defense;
         if (damage < 1) damage = 1;
 
         // 3. Check for elemental weakness/resistance

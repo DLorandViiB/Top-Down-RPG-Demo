@@ -1,0 +1,23 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ca433122ab7b196469b843d4dd212ffa, type: 3}
+  m_Name: Item_ManaPotion
+  m_EditorClassIdentifier: Assembly-CSharp::ItemData
+  itemName: Mana Potion
+  description: Restores 25 Mana
+  icon: {fileID: 2996405644704382645, guid: 08c258c9110835c4289f81172776499d, type: 3}
+  effect: 1
+  amount: 25
+  canUseInBattle: 1
+  canUseInMenu: 1
+  isStackable: 1
+  maxStackSize: 5

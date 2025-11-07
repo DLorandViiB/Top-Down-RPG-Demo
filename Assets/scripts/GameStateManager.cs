@@ -124,6 +124,8 @@ public class GameStatemanager : MonoBehaviour
             Debug.LogWarning("GameStatemanager: Could not find CameraFollow script!");
         }
 
+        PlayerStats.instance.ClearAllBuffs();
+
         // 6. Re-enable all encounter zones
         EncounterZone[] zones = FindObjectsByType<EncounterZone>(FindObjectsSortMode.None);
         foreach (EncounterZone zone in zones)
