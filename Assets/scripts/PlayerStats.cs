@@ -167,30 +167,6 @@ public class PlayerStats : MonoBehaviour
     }
 
     // BattleManager will call this to add the buff
-    public void AddBuff(SkillData skill)
-    {
-        // 1. Check if a buff of this type already exists
-        foreach (Buff buff in activeBuffs)
-        {
-            if (buff.effect == skill.effect)
-            {
-                // 2. It exists! Reset its duration.
-                buff.duration = skill.buffDuration;
-                Debug.Log($"Buff '{skill.skillName}' duration reset to {skill.buffDuration}.");
-                OnStatsChanged?.Invoke();
-                return;
-            }
-        }
-
-        // 3. If we're here, it's a new buff. Add it normally.
-        Buff newBuff = new Buff();
-        newBuff.effect = skill.effect;
-        newBuff.duration = skill.buffDuration;
-
-        activeBuffs.Add(newBuff);
-        OnStatsChanged?.Invoke();
-    }
-
     public void AddBuff(Buff newBuff)
     {
         // Check if a buff of this type already exists

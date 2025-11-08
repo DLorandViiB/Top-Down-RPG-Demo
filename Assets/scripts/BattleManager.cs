@@ -20,10 +20,9 @@ public class BattleManager : MonoBehaviour
     public TextMeshProUGUI playerHPText;
     public Slider playerManaBar;
     public TextMeshProUGUI playerMPText;
-
     public Slider enemyHealthBar;
-    //public TextMeshProUGUI enemyNameText;
     public TextMeshProUGUI commentText;
+    public Image continueArrow;
 
     [Header("Action Buttons")]
     public Button[] actionButtons;
@@ -37,10 +36,32 @@ public class BattleManager : MonoBehaviour
     private int currentSkillIndex = 0;
     public Transform skillRow1;
     public Transform skillRow2;
-
     private List<SkillButton> currentSkillButtons = new List<SkillButton>();
 
+    // --- Action Queue ---
+    private Queue<IEnumerator> battleActionQueue = new Queue<IEnumerator>();
+    private bool isSequenceRunning = false;
+    // --- End Action Queue ---
+
     private bool isWaitingForInput = false;
+
+    // This is the "brain" of the battle. It runs forever.
+    IEnumerator RunBattleQueue()
+    {
+        while (true)
+        {
+            if (battleActionQueue.Count > 0)
+            {
+                isSequenceRunning = true; // Lock input
+                yield return StartCoroutine(battleActionQueue.Dequeue()); // Run the next action and wait
+            }
+            else
+            {
+                isSequenceRunning = false; // Unlock input
+                yield return null; // Wait a frame
+            }
+        }
+    }
 
     void Start()
     {
@@ -81,6 +102,8 @@ public class BattleManager : MonoBehaviour
         currentState = BattleMenuState.ActionSelect;
         skillListPanel.SetActive(false); // Skills are hidden
         actionButtons[0].Select();
+
+        StartCoroutine(RunBattleQueue()); // Start the "brain"
     }
 
     public void UpdatePlayerUI()
@@ -92,11 +115,8 @@ public class BattleManager : MonoBehaviour
         }
 
         playerHealthBar.maxValue = playerStats.maxHealth;
-
         playerHealthBar.value = playerStats.currentHealth;
-
         playerHPText.SetText($"HP: {playerStats.currentHealth} / {playerStats.maxHealth}");
-
         playerManaBar.maxValue = playerStats.maxMana;
         playerManaBar.value = playerStats.currentMana;
         playerMPText.SetText($"MP: {playerStats.currentMana} / {playerStats.maxMana}");
@@ -105,27 +125,22 @@ public class BattleManager : MonoBehaviour
     public void UpdateEnemyUI()
     {
         if (enemy == null || enemy.enemyData == null) return;
-
         enemyHealthBar.maxValue = enemy.enemyData.maxHealth;
         enemyHealthBar.value = enemy.currentHealth;
-        //enemyNameText.SetText(enemy.enemyData.enemyName);
     }
 
     void Update()
     {
         if (isWaitingForInput) return;
-
-        // If it's not our turn, don't allow any menu input
+        if (isSequenceRunning) return; // Lock input if the queue is running
         if (!isPlayerTurn) return;
 
-        // --- 'X' KEY (CANCEL) LOGIC ---
         if (currentState == BattleMenuState.SkillSelect && Input.GetKeyDown(KeyCode.X))
         {
             GoBackToActions();
-            return; // Don't process any other input this frame
+            return;
         }
 
-        // Check which menu we're currently in
         if (currentState == BattleMenuState.ActionSelect)
         {
             HandleActionNavigation();
@@ -140,7 +155,6 @@ public class BattleManager : MonoBehaviour
     {
         // [0: FIGHT] [2: ITEM]
         // [1: SKILL] [3: RUN]
-
         int previousIndex = currentActionIndex;
 
         if (Input.GetKeyDown(KeyCode.RightArrow))
@@ -176,13 +190,11 @@ public class BattleManager : MonoBehaviour
             }
         }
 
-        // If we moved, update the highlight
         if (previousIndex != currentActionIndex)
         {
             actionButtons[currentActionIndex].Select();
         }
 
-        // Check for "Click"
         if (Input.GetKeyDown(KeyCode.Z))
         {
             actionButtons[currentActionIndex].onClick.Invoke();
@@ -192,7 +204,7 @@ public class BattleManager : MonoBehaviour
     void HandleSkillNavigation()
     {
         int previousIndex = currentSkillIndex;
-        int columns = 3; // The width of your skill grid
+        int columns = 3;
 
         if (Input.GetKeyDown(KeyCode.RightArrow))
         {
@@ -216,42 +228,142 @@ public class BattleManager : MonoBehaviour
             }
         }
 
-        // Clamp values to the list of skills *we just created*
         currentSkillIndex = Mathf.Clamp(currentSkillIndex, 0, currentSkillButtons.Count - 1);
 
-        if (previousIndex != currentSkillIndex)
+        if (previousIndex != currentSkillIndex && currentSkillButtons.Count > 0)
         {
-            // Deselect the old one
             currentSkillButtons[previousIndex].Deselect();
-            // Select the new one
             currentSkillButtons[currentSkillIndex].Select();
         }
 
-        // Check for "Click"
         if (Input.GetKeyDown(KeyCode.Z))
         {
-            // We get the Button component *from* our script's GameObject
             currentSkillButtons[currentSkillIndex].GetComponent<Button>().onClick.Invoke();
         }
     }
 
+    IEnumerator ShowMessageAndWait(string message)
+    {
+        commentText.SetText(message);
+        continueArrow.gameObject.SetActive(true);
+        Coroutine flashRoutine = StartCoroutine(FlashContinueArrow());
+
+        isWaitingForInput = true;
+        yield return null;
+        yield return new WaitUntil(() => Input.GetKeyDown(KeyCode.Z));
+        isWaitingForInput = false;
+
+        StopCoroutine(flashRoutine);
+        continueArrow.gameObject.SetActive(false);
+    }
+
+    IEnumerator FlashContinueArrow()
+    {
+        while (true)
+        {
+            continueArrow.enabled = !continueArrow.enabled;
+            yield return new WaitForSeconds(0.4f);
+        }
+    }
+
+    // --- ENEMY TURN & DEFEAT LOGIC ---
+
+    IEnumerator EnemyTurn()
+    {
+        // Check if the enemy was already dead
+        if (enemy.currentHealth <= 0)
+        {
+            battleActionQueue.Enqueue(EnemyDefeated()); // Queue the defeat
+            yield break; // Stop this turn
+        }
+
+        yield return StartCoroutine(ShowMessageAndWait($"The {enemy.enemyData.enemyName} attacks..."));
+
+        int roll = Random.Range(1, 21);
+        TakeDamageResult damageResult;
+
+        if (roll < 5)
+        {
+            yield return StartCoroutine(ShowMessageAndWait($"The {enemy.enemyData.enemyName} rolled a {roll} and missed!"));
+            damageResult = new TakeDamageResult();
+        }
+        else
+        {
+            int damage;
+            string message;
+            if (roll >= 15) // Crit
+            {
+                damage = Mathf.RoundToInt((enemy.enemyData.attack + roll) * 1.5f) - playerStats.defense;
+                message = $"A critical hit! The enemy rolled a {roll} and deals";
+            }
+            else // Normal
+            {
+                damage = (enemy.enemyData.attack + roll) - playerStats.defense;
+                message = $"The enemy rolled a {roll} and deals";
+            }
+
+            if (damage < 1) damage = 1;
+
+            damageResult = playerStats.TakeDamage(damage);
+            UpdatePlayerUI();
+            yield return StartCoroutine(ShowMessageAndWait($"{message} {damage} damage!"));
+        }
+
+        if (damageResult.healAmount > 0)
+        {
+            playerStats.Heal(damageResult.healAmount);
+            UpdatePlayerUI();
+            yield return StartCoroutine(ShowMessageAndWait(damageResult.healMessage));
+        }
+
+        if (damageResult.thornsDamage > 0)
+        {
+            enemy.TakeDamage(damageResult.thornsDamage);
+            UpdateEnemyUI();
+            yield return StartCoroutine(ShowMessageAndWait(damageResult.thornsMessage));
+
+            if (enemy.currentHealth <= 0)
+            {
+                battleActionQueue.Enqueue(EnemyDefeated());
+                yield break;
+            }
+        }
+
+        // --- END OF TURN ---
+        playerStats.TickDownBuffs();
+        SetButtonsInteractable(true);
+        isPlayerTurn = true;
+        actionButtons[currentActionIndex].Select();
+    }
+
+    IEnumerator EnemyDefeated()
+    {
+        yield return StartCoroutine(ShowMessageAndWait($"You defeated the {enemy.enemyData.enemyName}!"));
+
+        int xpGained = enemy.enemyData.xpYield + Random.Range(0, 20);
+        playerStats.GainXP(xpGained);
+
+        yield return StartCoroutine(ShowMessageAndWait($"You gained {xpGained} XP!"));
+        GameStatemanager.instance.EndBattle();
+    }
+
+    // --- PLAYER ACTION LOGIC (BUTTON CLICKS) ---
+
     public void OnFightButton()
     {
-        if (!isPlayerTurn) return;
-        StartCoroutine(FightSequence());
+        if (!isPlayerTurn || isSequenceRunning) return;
+        isPlayerTurn = false;
+        SetButtonsInteractable(false);
+        battleActionQueue.Enqueue(FightSequence());
     }
 
     IEnumerator FightSequence()
     {
-        isPlayerTurn = false;
-        SetButtonsInteractable(false);
-
         int roll = Random.Range(1, 21);
         int finalRoll = roll + playerStats.luck;
 
         yield return StartCoroutine(ShowMessageAndWait($"You rolled a {roll} ( +{playerStats.luck} luck ) = {finalRoll}"));
 
-        // Check the outcomes
         if (roll == 20)
         {
             yield return StartCoroutine(PerformInstaKill(null));
@@ -268,33 +380,179 @@ public class BattleManager : MonoBehaviour
         {
             yield return StartCoroutine(PerformNormalAttack(finalRoll));
         }
+
+        battleActionQueue.Enqueue(EnemyTurn());
     }
 
-    IEnumerator PerformNormalAttack(int finalRoll)
+    public void OnSkillButton()
     {
-        int damage = (playerStats.attack + finalRoll) - enemy.enemyData.defense;
-        if (damage < 1) damage = 1;
+        var battleSkills = playerStats.unlockedSkills.FindAll(
+            skill => skill.skillType == SkillData.SkillType.BattleSkill
+        );
 
-        yield return StartCoroutine(ShowMessageAndWait($"You attack! Your roll of {finalRoll} deals {damage} damage."));
+        if (battleSkills.Count == 0)
+        {
+            StartCoroutine(ShowMessageAndWait("You have not learned any battle skills!"));
+            return;
+        }
 
-        enemy.TakeDamage(damage);
-        UpdateEnemyUI();
-        StartCoroutine(EnemyTurn()); // Start the enemy's turn
+        currentState = BattleMenuState.SkillSelect;
+        skillListPanel.SetActive(true);
+        SetButtonsInteractable(false);
+
+        foreach (Transform child in skillRow1) { Destroy(child.gameObject); }
+        foreach (Transform child in skillRow2) { Destroy(child.gameObject); }
+        currentSkillButtons.Clear();
+
+        for (int i = 0; i < battleSkills.Count; i++)
+        {
+            SkillData currentSkill = battleSkills[i];
+            Transform parentRow = (i < 3) ? skillRow1 : skillRow2;
+            GameObject newButtonObj = Instantiate(skillButtonPrefab, parentRow);
+
+            Button newButton = newButtonObj.GetComponent<Button>();
+            SkillButton skillButtonScript = newButtonObj.GetComponent<SkillButton>();
+
+            skillButtonScript.Setup(currentSkill);
+            newButton.onClick.AddListener(() => OnSkillSelected(currentSkill));
+            currentSkillButtons.Add(skillButtonScript);
+        }
+
+        currentSkillIndex = 0;
+        currentSkillButtons[0].Select();
     }
 
-    IEnumerator PerformCritAttack(int finalRoll)
+    void OnSkillSelected(SkillData selectedSkill)
     {
-        int damage = Mathf.RoundToInt((playerStats.attack + finalRoll) * 1.5f);
-        if (damage < 1) damage = 1;
+        if (playerStats.currentMana < selectedSkill.manaCost)
+        {
+            StartCoroutine(ShowMessageAndWait("Not enough mana!"));
+            return;
+        }
 
-        yield return StartCoroutine(ShowMessageAndWait($"A critical hit! Your roll of {finalRoll} deals {damage} damage!"));
+        isPlayerTurn = false;
+        SetButtonsInteractable(false);
+        currentState = BattleMenuState.ActionSelect;
+        CleanupSkillList();
 
-        enemy.TakeDamage(damage);
-        UpdateEnemyUI();
-        StartCoroutine(EnemyTurn());
+        battleActionQueue.Enqueue(SkillSequence(selectedSkill));
     }
 
-    // We can re-use the one from SkillData
+    IEnumerator SkillSequence(SkillData selectedSkill)
+    {
+        playerStats.UseMana(selectedSkill.manaCost);
+        UpdatePlayerUI();
+
+        switch (selectedSkill.effect)
+        {
+            case SkillData.SkillEffect.Heal:
+                yield return StartCoroutine(PerformHeal(selectedSkill));
+                break;
+            case SkillData.SkillEffect.GuaranteedRoll:
+                yield return StartCoroutine(PerformDamage(selectedSkill, 15));
+                break;
+            case SkillData.SkillEffect.NormalDamage:
+                yield return StartCoroutine(PerformDamage(selectedSkill, 1));
+                break;
+            case SkillData.SkillEffect.InstantKill:
+                yield return StartCoroutine(PerformInstaKill(selectedSkill));
+                break;
+            case SkillData.SkillEffect.HealOnDamage:
+                Buff newBuff = new Buff();
+                newBuff.effect = selectedSkill.effect;
+                newBuff.duration = selectedSkill.buffDuration;
+                playerStats.AddBuff(newBuff);
+                yield return StartCoroutine(ShowMessageAndWait($"You are protected by {selectedSkill.skillName}!"));
+                break;
+            case SkillData.SkillEffect.Thorns:
+                Buff thornsBuff = new Buff();
+                thornsBuff.effect = selectedSkill.effect;
+                thornsBuff.duration = selectedSkill.buffDuration;
+                playerStats.AddBuff(thornsBuff);
+                yield return StartCoroutine(ShowMessageAndWait($"You are protected by {selectedSkill.skillName}!"));
+                break;
+        }
+
+        battleActionQueue.Enqueue(EnemyTurn());
+    }
+
+    public void OnItemButton()
+    {
+        if (!isPlayerTurn || isSequenceRunning) return;
+        isPlayerTurn = false;
+        SetButtonsInteractable(false);
+        battleActionQueue.Enqueue(ItemButtonSequence());
+    }
+
+    IEnumerator ItemButtonSequence()
+    {
+        yield return StartCoroutine(ShowMessageAndWait("You have no items!"));
+        battleActionQueue.Enqueue(EnemyTurn()); // Using an item still costs a turn
+    }
+
+    public void OnRunButton()
+    {
+        if (!isPlayerTurn || isSequenceRunning) return;
+        isPlayerTurn = false;
+        SetButtonsInteractable(false);
+        battleActionQueue.Enqueue(RunAwaySequence());
+    }
+
+    IEnumerator RunAwaySequence()
+    {
+        yield return StartCoroutine(ShowMessageAndWait("You got away safely!"));
+        GameStatemanager.instance.EndBattle();
+    }
+
+    void GoBackToActions()
+    {
+        currentState = BattleMenuState.ActionSelect;
+        SetButtonsInteractable(true);
+        CleanupSkillList();
+
+        currentActionIndex = 1;
+        actionButtons[currentActionIndex].Select();
+    }
+
+    void SetButtonsInteractable(bool state)
+    {
+        Navigation newNav = new Navigation();
+        newNav.mode = state ? Navigation.Mode.Automatic : Navigation.Mode.None;
+
+        foreach (Button button in actionButtons)
+        {
+            button.interactable = state;
+            button.navigation = newNav;
+        }
+    }
+
+    void CleanupSkillList()
+    {
+        skillListPanel.SetActive(false);
+
+        if (currentSkillButtons.Count > 0 && currentSkillIndex < currentSkillButtons.Count)
+        {
+            currentSkillButtons[currentSkillIndex].Deselect();
+        }
+
+        foreach (Transform child in skillRow1) { Destroy(child.gameObject); }
+        foreach (Transform child in skillRow2) { Destroy(child.gameObject); }
+        currentSkillButtons.Clear();
+    }
+
+    // --- SKILL LOGIC HELPERS ---
+
+    // These functions (PerformHeal, PerformDamage, etc.) are the
+    // missing pieces from your last script.
+
+    IEnumerator PerformHeal(SkillData skill)
+    {
+        int healAmount = Mathf.RoundToInt(playerStats.maxHealth * 0.3f);
+        playerStats.Heal(healAmount);
+        UpdatePlayerUI();
+        yield return StartCoroutine(ShowMessageAndWait($"You used {skill.skillName} and healed {healAmount} HP!"));
+    }
+
     IEnumerator PerformInstaKill(SkillData skill)
     {
         if (skill != null)
@@ -311,321 +569,20 @@ public class BattleManager : MonoBehaviour
             enemy.TakeDamage(9999);
             UpdateEnemyUI();
         }
-        StartCoroutine(EnemyTurn());
     }
 
     IEnumerator PerformMiss(int finalRoll)
     {
         yield return StartCoroutine(ShowMessageAndWait($"You missed! (Your roll: {finalRoll})"));
-        StartCoroutine(EnemyTurn());
-    }
-
-    IEnumerator ShowMessageAndWait(string message)
-    {
-        commentText.SetText(message);
-
-        // TODO: You could show a little flashing "continue" arrow here
-
-        isWaitingForInput = true;
-        // Wait until the player presses the 'Z' key
-        yield return new WaitUntil(() => Input.GetKeyDown(KeyCode.Z));
-        isWaitingForInput = false;
-
-        // TODO: You would hide the "continue" arrow here
-    }
-
-    IEnumerator EnemyTurn()
-    {
-        if (enemy.currentHealth > 0)
-        {
-            // --- ENEMY'S TURN LOGIC ---
-            yield return StartCoroutine(ShowMessageAndWait($"The {enemy.enemyData.enemyName} attacks..."));
-
-            yield return new WaitForSeconds(1.5f);
-
-            int roll = Random.Range(1, 21);
-            TakeDamageResult damageResult;
-
-            if (roll < 5)
-            {
-                yield return StartCoroutine(ShowMessageAndWait($"The {enemy.enemyData.enemyName} rolled a {roll} and missed!"));
-                // Create an empty result since no damage was dealt
-                damageResult = new TakeDamageResult();
-            }
-            else // This block handles both Crits and Normal hits
-            {
-                int damage;
-                string message;
-
-                if (roll >= 15) // Crit
-                {
-                    damage = Mathf.RoundToInt((enemy.enemyData.attack + roll) * 1.5f) - playerStats.defense;
-                    message = $"A critical hit! The enemy rolled a {roll} and deals";
-                }
-                else // Normal
-                {
-                    damage = (enemy.enemyData.attack + roll) - playerStats.defense;
-                    message = $"The enemy rolled a {roll} and deals";
-                }
-
-                if (damage < 1) damage = 1;
-
-                // 1. Take damage and get the results
-                damageResult = playerStats.TakeDamage(damage);
-
-                // 2. Update UI to show the DAMAGE
-                UpdatePlayerUI();
-                yield return StartCoroutine(ShowMessageAndWait($"{message} {damage} damage!"));
-            }
-
-            // Wait for the attack message to be read
-
-            // 3. Check for and apply the HEAL (Guardian Angel)
-            if (damageResult.healAmount > 0)
-            {
-                playerStats.Heal(damageResult.healAmount);
-                UpdatePlayerUI(); // Update UI to show the heal
-                yield return StartCoroutine(ShowMessageAndWait(damageResult.healMessage));
-            }
-
-            // 4. Check for and apply THORNS
-            if (damageResult.thornsDamage > 0)
-            {
-                // Show message AND deal damage in the *same frame*
-                enemy.TakeDamage(damageResult.thornsDamage);
-                UpdateEnemyUI();
-
-                // Now wait for the player to read the message
-                yield return StartCoroutine(ShowMessageAndWait(damageResult.thornsMessage));
-
-                if (enemy.currentHealth <= 0)
-                {
-                    StartCoroutine(EnemyDefeated());
-                    yield break;
-                }
-            }
-
-            playerStats.TickDownBuffs();
-
-            SetButtonsInteractable(true);
-            isPlayerTurn = true;
-            actionButtons[currentActionIndex].Select();
-        }
-        else
-        {
-            StartCoroutine(EnemyDefeated());
-        }
-    }
-
-    IEnumerator EnemyDefeated()
-    {
-        yield return StartCoroutine(ShowMessageAndWait($"You defeated the {enemy.enemyData.enemyName}!"));
-
-        int xpGained = enemy.enemyData.xpYield + Random.Range(0, 20);
-        playerStats.GainXP(xpGained);
-
-
-        yield return StartCoroutine(ShowMessageAndWait($"You gained {xpGained} XP!"));
-
-        GameStatemanager.instance.EndBattle();
-    }
-
-    public void OnSkillButton()
-    {
-        // 1. Get ONLY the battle skills from PlayerStats
-        var battleSkills = playerStats.unlockedSkills.FindAll(
-            skill => skill.skillType == SkillData.SkillType.BattleSkill
-        );
-
-        // 2. Check if we even have skills
-        if (battleSkills.Count == 0)
-        {
-            // Call the new coroutine
-            StartCoroutine(ShowMessageAndWait("You have not learned any battle skills!"));
-            return;
-        }
-
-        // 3. We have skills! Switch the state.
-        currentState = BattleMenuState.SkillSelect;
-        skillListPanel.SetActive(true);
-        SetButtonsInteractable(false);
-
-        // 4. Clean up old buttons
-        foreach (Transform child in skillRow1) { Destroy(child.gameObject); }
-        foreach (Transform child in skillRow2) { Destroy(child.gameObject); }
-        currentSkillButtons.Clear();
-
-        // 5. Create new buttons and add them to the rows
-        for (int i = 0; i < battleSkills.Count; i++)
-        {
-            SkillData currentSkill = battleSkills[i];
-
-            Transform parentRow = (i < 3) ? skillRow1 : skillRow2;
-
-            GameObject newButtonObj = Instantiate(skillButtonPrefab, parentRow);
-
-            Button newButton = newButtonObj.GetComponent<Button>();
-            SkillButton skillButtonScript = newButtonObj.GetComponent<SkillButton>();
-
-            skillButtonScript.Setup(currentSkill);
-
-            // Add a listener to call OnSkillSelected
-            newButton.onClick.AddListener(() => OnSkillSelected(currentSkill));
-
-            // Add our custom script to the list
-            currentSkillButtons.Add(skillButtonScript);
-        }
-
-        // 6. Select the first skill
-        currentSkillIndex = 0;
-        currentSkillButtons[0].Select();
-    }
-
-    void OnSkillSelected(SkillData selectedSkill)
-    {
-        // 1. Check for mana
-        if (playerStats.currentMana < selectedSkill.manaCost)
-        {
-            StartCoroutine(ShowMessageAndWait("Not enough mana!"));
-            return;
-        }
-
-        // Start the skill sequence
-        StartCoroutine(SkillSequence(selectedSkill));
-    }
-
-    IEnumerator SkillSequence(SkillData selectedSkill)
-    {
-        isPlayerTurn = false;
-        SetButtonsInteractable(false);
-        currentState = BattleMenuState.ActionSelect;
-        CleanupSkillList();
-
-        playerStats.UseMana(selectedSkill.manaCost);
-        UpdatePlayerUI();
-
-        // Use the switch to decide what logic to run
-        switch (selectedSkill.effect)
-        {
-            case SkillData.SkillEffect.Heal:
-                yield return StartCoroutine(PerformHeal(selectedSkill));
-                break;
-            case SkillData.SkillEffect.GuaranteedRoll:
-                yield return StartCoroutine(PerformDamage(selectedSkill, 15));
-                break;
-            case SkillData.SkillEffect.NormalDamage:
-                yield return StartCoroutine(PerformDamage(selectedSkill, 1));
-                break;
-            case SkillData.SkillEffect.InstantKill:
-                yield return StartCoroutine(PerformInstaKill(selectedSkill));
-                break;
-            case SkillData.SkillEffect.HealOnDamage:
-                playerStats.AddBuff(selectedSkill);
-                yield return StartCoroutine(ShowMessageAndWait($"You are protected by {selectedSkill.skillName}!"));
-                StartCoroutine(EnemyTurn());
-                break;
-        }
-    }
-
-    void GoBackToActions()
-    {
-        currentState = BattleMenuState.ActionSelect;
-        SetButtonsInteractable(true); // Re-enables the 2x2 grid
-        CleanupSkillList(); // Call our new helper function
-
-        // Re-select the "SKILL" button
-        currentActionIndex = 1;
-        actionButtons[currentActionIndex].Select();
-    }
-
-    public void OnItemButton()
-    {
-        if (!isPlayerTurn) return;
-        StartCoroutine(ItemButtonSequence());
-    }
-
-    IEnumerator ItemButtonSequence()
-    {
-        yield return StartCoroutine(ShowMessageAndWait("You have no items!"));
-    }
-
-    public void OnRunButton()
-    {
-        if (!isPlayerTurn) return;
-        StartCoroutine(RunAwaySequence());
-    }
-
-    IEnumerator RunAwaySequence()
-    {
-        isPlayerTurn = false;
-        SetButtonsInteractable(false);
-
-        yield return StartCoroutine(ShowMessageAndWait("You got away safely!"));
-
-        GameStatemanager.instance.EndBattle();
-    }
-
-    void SetButtonsInteractable(bool state)
-    {
-        foreach (Button button in actionButtons)
-        {
-            button.interactable = state;
-        }
-    }
-
-    void CleanupSkillList()
-    {
-        skillListPanel.SetActive(false); // Hide the skill grid
-
-        // Deselect the last highlighted skill
-        if (currentSkillButtons.Count > 0 && currentSkillIndex < currentSkillButtons.Count)
-        {
-            currentSkillButtons[currentSkillIndex].Deselect();
-        }
-
-        // Clean up the buttons
-        foreach (Transform child in skillRow1) { Destroy(child.gameObject); }
-        foreach (Transform child in skillRow2) { Destroy(child.gameObject); }
-        currentSkillButtons.Clear();
-    }
-
-    // --- SKILL LOGIC HELPERS ---
-
-    IEnumerator PerformHeal(SkillData skill)
-    {
-        int healAmount = Mathf.RoundToInt(playerStats.maxHealth * 0.3f);
-        playerStats.Heal(healAmount);
-        UpdatePlayerUI();
-        yield return StartCoroutine(ShowMessageAndWait($"You used {skill.skillName} and healed {healAmount} HP!"));
-        StartCoroutine(EnemyTurn());
-    }
-
-    IEnumerator PerformInstantKill(SkillData skill)
-    {
-        if (enemy.enemyData.isBoss)
-        {
-            yield return StartCoroutine(ShowMessageAndWait("It has no effect on this powerful foe!"));
-        }
-        else
-        {
-            yield return StartCoroutine(ShowMessageAndWait($"You used {skill.skillName}... a killing blow!"));
-            enemy.TakeDamage(9999); // Insta-kill
-            UpdateEnemyUI();
-        }
-
-        // Start the enemy's turn (even if it's dead, to process the win)
-        StartCoroutine(EnemyTurn());
     }
 
     IEnumerator PerformDamage(SkillData skill, int minRoll)
     {
-        // 1. Get the roll
         int roll = Random.Range(1, 21);
 
-        // Check for "Heavy Blow"
         if (minRoll > 1)
         {
-            roll = Mathf.Max(roll, minRoll); // Guarantees a 15 or higher roll
+            roll = Mathf.Max(roll, minRoll);
             yield return StartCoroutine(ShowMessageAndWait($"You used {skill.skillName} for a guaranteed heavy hit!"));
         }
         else
@@ -644,54 +601,60 @@ public class BattleManager : MonoBehaviour
             }
         }
 
-        // 2. Calculate base damage
         int damage = (playerStats.attack + attackBonus + finalRoll) - enemy.enemyData.defense;
         if (damage < 1) damage = 1;
 
-        // 3. Check for elemental weakness/resistance
         float multiplier = 1.0f;
         string effectMessage = "";
 
-        // Check Fire vs Ice
         if (skill.element == SkillData.ElementType.Fire && enemy.enemyData.element == EnemyData.ElementType.Ice)
         {
             multiplier = 2.0f;
-            effectMessage = $"The {enemy.enemyData.enemyName} takes heavy damage!";
+            effectMessage = $" The {enemy.enemyData.enemyName} takes heavy damage!";
         }
-        // Check Ice vs Fire
         else if (skill.element == SkillData.ElementType.Ice && enemy.enemyData.element == EnemyData.ElementType.Fire)
         {
             multiplier = 2.0f;
-            effectMessage = $"The {enemy.enemyData.enemyName} takes heavy damage!";
+            effectMessage = $" The {enemy.enemyData.enemyName} takes heavy damage!";
         }
-
-        // Check Fire vs Fire
-        if (skill.element == SkillData.ElementType.Fire && enemy.enemyData.element == EnemyData.ElementType.Fire)
+        else if (skill.element == SkillData.ElementType.Fire && enemy.enemyData.element == EnemyData.ElementType.Fire)
         {
             multiplier = 0.5f;
-            effectMessage = $"The {enemy.enemyData.enemyName} takes light damage!";
+            effectMessage = $" The {enemy.enemyData.enemyName} takes light damage!";
         }
-        // Check Ice vs Ice
         else if (skill.element == SkillData.ElementType.Ice && enemy.enemyData.element == EnemyData.ElementType.Ice)
         {
             multiplier = 0.5f;
-            effectMessage = $"The {enemy.enemyData.enemyName} takes light damage!";
+            effectMessage = $" The {enemy.enemyData.enemyName} takes light damage!";
         }
 
-        // 4. Apply multiplier
         damage = Mathf.RoundToInt(damage * multiplier);
-
-        // 5. Deal damage and show message
         enemy.TakeDamage(damage);
         UpdateEnemyUI();
 
-        // We'll show the message in a coroutine to add a delay
-        StartCoroutine(ShowDamageMessage(finalRoll, damage, effectMessage));
+        yield return StartCoroutine(ShowDamageMessage(finalRoll, damage, effectMessage));
     }
 
     IEnumerator ShowDamageMessage(int finalRoll, int damage, string effectMessage)
     {
         yield return StartCoroutine(ShowMessageAndWait($"Your roll of {finalRoll} deals {damage} damage!{effectMessage}"));
-        StartCoroutine(EnemyTurn());
+    }
+
+    IEnumerator PerformNormalAttack(int finalRoll)
+    {
+        int damage = (playerStats.attack + finalRoll) - enemy.enemyData.defense;
+        if (damage < 1) damage = 1;
+        yield return StartCoroutine(ShowMessageAndWait($"You attack! Your roll of {finalRoll} deals {damage} damage."));
+        enemy.TakeDamage(damage);
+        UpdateEnemyUI();
+    }
+
+    IEnumerator PerformCritAttack(int finalRoll)
+    {
+        int damage = Mathf.RoundToInt((playerStats.attack + finalRoll) * 1.5f);
+        if (damage < 1) damage = 1;
+        yield return StartCoroutine(ShowMessageAndWait($"A critical hit! Your roll of {finalRoll} deals {damage} damage!"));
+        enemy.TakeDamage(damage);
+        UpdateEnemyUI();
     }
 }
