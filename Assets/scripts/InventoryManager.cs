@@ -83,21 +83,20 @@ public class InventoryManager : MonoBehaviour
         return false;
     }
 
-    public bool UseItem(InventorySlot slot)
+    // Empty string = success. Any other string = fail message.
+    public string UseItem(InventorySlot slot)
     {
-        if (slot.item == null) return false;
+        if (slot.item == null) return "Slot is empty.";
 
         ItemData item = slot.item;
         PlayerStats player = PlayerStats.instance;
 
-        // This switch statement runs the correct logic
         switch (item.effect)
         {
             case ItemData.ItemEffect.HealHP:
                 if (player.currentHealth == player.maxHealth)
                 {
-                    Debug.Log("Health is already full.");
-                    return false;
+                    return "Health is already full!"; // Return the fail message
                 }
                 player.Heal(item.amount);
                 break;
@@ -105,8 +104,7 @@ public class InventoryManager : MonoBehaviour
             case ItemData.ItemEffect.HealMP:
                 if (player.currentMana == player.maxMana)
                 {
-                    Debug.Log("Mana is already full.");
-                    return false;
+                    return "Mana is already full!"; // Return the fail message
                 }
                 player.RestoreMana(item.amount);
                 break;
@@ -126,9 +124,9 @@ public class InventoryManager : MonoBehaviour
                 break;
         }
 
-        // If we used it, remove one from inventory
+        // If we got this far, the item was used.
         RemoveItem(slot, 1);
-        return true;
+        return ""; // Return an empty string for SUCCESS
     }
 
     // Helper function to remove from a specific slot

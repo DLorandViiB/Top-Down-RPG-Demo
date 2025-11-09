@@ -6,11 +6,12 @@ using System.Collections.Generic;
 
 public class BattleManager : MonoBehaviour
 {
-    private enum BattleMenuState { ActionSelect, SkillSelect }
+    private enum BattleMenuState { ActionSelect, SkillSelect, ItemSelect }
     private BattleMenuState currentState;
 
     [Header("Player")]
     private PlayerStats playerStats;
+    private InventoryManager inventoryManager;
 
     [Header("Enemy")]
     private EnemyBattleController enemy;
@@ -30,13 +31,23 @@ public class BattleManager : MonoBehaviour
     private int currentActionIndex = 0;
     private bool isPlayerTurn = true;
 
-    [Header("Skill Panel")]
-    public GameObject skillListPanel;
+    [Header("Sub-Menu Panel")]
+    public GameObject subMenuPanel;
     public GameObject skillButtonPrefab;
-    private int currentSkillIndex = 0;
+    public GameObject itemSlotPrefab;
+
+    [Header("Skill Grid")]
+    public GameObject skillGrid;
     public Transform skillRow1;
     public Transform skillRow2;
+    private int currentSkillIndex = 0;
     private List<SkillButton> currentSkillButtons = new List<SkillButton>();
+
+    [Header("Item Grid")]
+    public GameObject itemGrid;
+    public Transform itemRow;
+    private int currentItemIndex = 0;
+    private List<BattleItemSlot> currentItemSlots = new List<BattleItemSlot>();
 
     // --- Action Queue ---
     private Queue<IEnumerator> battleActionQueue = new Queue<IEnumerator>();
@@ -63,11 +74,14 @@ public class BattleManager : MonoBehaviour
         }
     }
 
-    void Start()
+    void Awake()
     {
         playerStats = PlayerStats.instance;
         enemy = FindFirstObjectByType<EnemyBattleController>();
+    }
 
+    void Start()
+    {
         if (playerStats != null)
         {
             SpriteRenderer playerSprite = playerStats.GetComponentInChildren<SpriteRenderer>();
@@ -100,7 +114,7 @@ public class BattleManager : MonoBehaviour
         actionButtons[3].onClick.AddListener(OnRunButton);
 
         currentState = BattleMenuState.ActionSelect;
-        skillListPanel.SetActive(false); // Skills are hidden
+        subMenuPanel.SetActive(false); // Skills are hidden
         actionButtons[0].Select();
 
         StartCoroutine(RunBattleQueue()); // Start the "brain"
@@ -141,6 +155,12 @@ public class BattleManager : MonoBehaviour
             return;
         }
 
+        if (currentState == BattleMenuState.ItemSelect && Input.GetKeyDown(KeyCode.X))
+        {
+            GoBackToActions();
+            return;
+        }
+
         if (currentState == BattleMenuState.ActionSelect)
         {
             HandleActionNavigation();
@@ -148,6 +168,10 @@ public class BattleManager : MonoBehaviour
         else if (currentState == BattleMenuState.SkillSelect)
         {
             HandleSkillNavigation();
+        }
+        else if (currentState == BattleMenuState.ItemSelect)
+        {
+            HandleItemNavigation();
         }
     }
 
@@ -397,7 +421,9 @@ public class BattleManager : MonoBehaviour
         }
 
         currentState = BattleMenuState.SkillSelect;
-        skillListPanel.SetActive(true);
+        subMenuPanel.SetActive(true);
+        skillGrid.SetActive(true);
+        itemGrid.SetActive(false);
         SetButtonsInteractable(false);
 
         foreach (Transform child in skillRow1) { Destroy(child.gameObject); }
@@ -433,7 +459,7 @@ public class BattleManager : MonoBehaviour
         isPlayerTurn = false;
         SetButtonsInteractable(false);
         currentState = BattleMenuState.ActionSelect;
-        CleanupSkillList();
+        CleanupSubMenu();
 
         battleActionQueue.Enqueue(SkillSequence(selectedSkill));
     }
@@ -476,18 +502,162 @@ public class BattleManager : MonoBehaviour
         battleActionQueue.Enqueue(EnemyTurn());
     }
 
+    // This is called by the "ITEM" button
     public void OnItemButton()
     {
         if (!isPlayerTurn || isSequenceRunning) return;
-        isPlayerTurn = false;
+
+        CleanupSubMenu();
+
+        // 1. Check if we've found the inventoryManager yet.
+        if (inventoryManager == null)
+        {
+            // If not, find it now.
+            inventoryManager = InventoryManager.instance;
+
+            // 2. If it's STILL null (which means it doesn't exist), show an error.
+            if (inventoryManager == null)
+            {
+                StartCoroutine(ShowMessageAndWait("Error: InventoryManager not found!"));
+                return;
+            }
+        }
+
+        // 3. Find all usable items
+        List<InventorySlot> battleItems = new List<InventorySlot>();
+        foreach (var slot in inventoryManager.slots)
+        {
+            if (slot.item != null && slot.item.canUseInBattle)
+            {
+                battleItems.Add(slot);
+            }
+        }
+
+        if (battleItems.Count == 0)
+        {
+            StartCoroutine(ShowMessageAndWait("You have no items to use!"));
+            return;
+        }
+
+        // We have items! Switch the state.
+        currentState = BattleMenuState.ItemSelect;
+        subMenuPanel.SetActive(true);
+        skillGrid.SetActive(false);
+        itemGrid.SetActive(true);
         SetButtonsInteractable(false);
-        battleActionQueue.Enqueue(ItemButtonSequence());
+
+        // Create new item slots
+        for (int i = 0; i < battleItems.Count; i++)
+        {
+            InventorySlot currentSlot = battleItems[i];
+            GameObject newSlotObj = Instantiate(itemSlotPrefab, itemRow);
+
+            newSlotObj.transform.localScale = Vector3.one;
+
+            Image iconImage = newSlotObj.transform.Find("Icon").GetComponent<Image>();
+            iconImage.sprite = currentSlot.item.icon;
+            iconImage.enabled = true;
+
+            BattleItemSlot itemSlotScript = newSlotObj.GetComponent<BattleItemSlot>();
+            itemSlotScript.Setup(currentSlot);
+
+            Button newButton = newSlotObj.GetComponent<Button>();
+            newButton.onClick.AddListener(() => OnItemSelected(currentSlot));
+
+            currentItemSlots.Add(itemSlotScript);
+        }
+
+        currentItemIndex = 0;
+        currentItemSlots[0].Select();
+        ShowItemDescription(currentItemSlots[0].itemData);
     }
 
-    IEnumerator ItemButtonSequence()
+    // This is the new navigation for the item grid
+    void HandleItemNavigation()
     {
-        yield return StartCoroutine(ShowMessageAndWait("You have no items!"));
-        battleActionQueue.Enqueue(EnemyTurn()); // Using an item still costs a turn
+        if (currentItemSlots.Count == 0)
+        {
+            return;
+        }
+
+        int previousIndex = currentItemIndex;
+
+        if (Input.GetKeyDown(KeyCode.RightArrow))
+        {
+            currentItemIndex++;
+        }
+        else if (Input.GetKeyDown(KeyCode.LeftArrow))
+        {
+            currentItemIndex--;
+        }
+
+        // Clamp values to the list of items
+        currentItemIndex = Mathf.Clamp(currentItemIndex, 0, currentItemSlots.Count - 1);
+
+        if (previousIndex != currentItemIndex)
+        {
+            currentItemSlots[previousIndex].Deselect();
+            currentItemSlots[currentItemIndex].Select();
+
+            // Update description box
+            ShowItemDescription(currentItemSlots[currentItemIndex].itemData);
+        }
+
+        if (Input.GetKeyDown(KeyCode.Z))
+        {
+            currentItemSlots[currentItemIndex].GetComponent<Button>().onClick.Invoke();
+        }
+    }
+
+    // This is called when you click an item
+    void OnItemSelected(InventorySlot selectedSlot)
+    {
+        StartCoroutine(ItemSequence(selectedSlot));
+    }
+
+    // This is the action for using an item
+    IEnumerator ItemSequence(InventorySlot selectedSlot)
+    {
+        // 1. Try to use the item and get the result message
+        string useResult = inventoryManager.UseItem(selectedSlot);
+
+        // 2. Check if the use was a SUCCESS (empty string)
+        if (string.IsNullOrEmpty(useResult))
+        {
+            // SUCCESS!
+            // This is a valid turn. Lock the player and clean up.
+            isPlayerTurn = false;
+            SetButtonsInteractable(false);
+            currentState = BattleMenuState.ActionSelect;
+            CleanupSubMenu();
+
+            UpdatePlayerUI(); // Update HP/MP bars
+
+            yield return StartCoroutine(ShowMessageAndWait($"You used {selectedSlot.item.itemName}!"));
+
+            // Queue the enemy's turn
+            battleActionQueue.Enqueue(EnemyTurn());
+        }
+        else
+        {
+            // FAILURE!
+            // Show the error message (e.g., "Health is already full!")
+            yield return StartCoroutine(ShowMessageAndWait(useResult));
+        }
+    }
+
+    // This new function shows the item info in the CommentBox
+    void ShowItemDescription(ItemData data)
+    {
+        if (data == null)
+        {
+            commentText.SetText("");
+        }
+        else
+        {
+            // Set the text without waiting
+            commentText.SetText($"{data.itemName}\n{data.description}");
+        }
     }
 
     public void OnRunButton()
@@ -506,11 +676,19 @@ public class BattleManager : MonoBehaviour
 
     void GoBackToActions()
     {
+        if (currentState == BattleMenuState.SkillSelect)
+        {
+            currentActionIndex = 1;
+        }
+        else if (currentState == BattleMenuState.ItemSelect)
+        {
+            currentActionIndex = 2;
+        }
+
         currentState = BattleMenuState.ActionSelect;
         SetButtonsInteractable(true);
-        CleanupSkillList();
+        CleanupSubMenu();
 
-        currentActionIndex = 1;
         actionButtons[currentActionIndex].Select();
     }
 
@@ -526,18 +704,26 @@ public class BattleManager : MonoBehaviour
         }
     }
 
-    void CleanupSkillList()
+    void CleanupSubMenu()
     {
-        skillListPanel.SetActive(false);
-
-        if (currentSkillButtons.Count > 0 && currentSkillIndex < currentSkillButtons.Count)
+        // 1. Deselect the current button if it exists
+        if (currentItemSlots.Count > 0 && currentItemIndex < currentItemSlots.Count)
         {
-            currentSkillButtons[currentSkillIndex].Deselect();
+            // Use ?. to be extra safe
+            currentItemSlots[currentItemIndex]?.Deselect();
         }
 
         foreach (Transform child in skillRow1) { Destroy(child.gameObject); }
         foreach (Transform child in skillRow2) { Destroy(child.gameObject); }
+        foreach (Transform child in itemRow) { Destroy(child.gameObject); }
+
         currentSkillButtons.Clear();
+        currentItemSlots.Clear();
+
+        // 5. Finally, hide the panel
+        skillGrid.SetActive(false);
+        itemGrid.SetActive(false);
+        subMenuPanel.SetActive(false);
     }
 
     // --- SKILL LOGIC HELPERS ---
