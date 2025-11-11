@@ -25,7 +25,7 @@ public class PlayerInteraction : MonoBehaviour
                 // If dialogue is active, send the "Z" press to the DialogueManager
                 DialogueManager.instance.HandleInput();
             }
-            else if (targetInteractable != null)
+            else if (targetInteractable != null && playerMovement.canMove)
             {
                 // If not, tell our target to do its thing
                 targetInteractable.OnInteract();

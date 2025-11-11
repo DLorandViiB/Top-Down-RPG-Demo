@@ -300,7 +300,7 @@ public class GameStatemanager : MonoBehaviour
         stats.currentXP = data.currentXP;
         stats.xpToNextLevel = data.xpToNextLevel;
 
-        // 3. Apply Skills (Must be done BEFORE inventory and stats to apply passives)
+        // 3. Apply Skills (This just repopulates the skill list)
         stats.unlockedSkills.Clear();
         foreach (string skillName in data.unlockedSkillIDs)
         {
@@ -308,13 +308,6 @@ public class GameStatemanager : MonoBehaviour
             if (skill != null)
             {
                 stats.unlockedSkills.Add(skill);
-                // --- THIS IS THE FIX ---
-                // We must manually re-apply passive stats on load
-                if (skill.skillType == SkillData.SkillType.PassiveStatBoost)
-                {
-                    // This function MUST be public in PlayerStats.cs
-                    stats.ApplyPassiveStat(skill);
-                }
             }
         }
 

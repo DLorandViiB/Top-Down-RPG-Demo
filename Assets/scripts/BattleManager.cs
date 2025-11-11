@@ -49,6 +49,10 @@ public class BattleManager : MonoBehaviour
     private int currentItemIndex = 0;
     private List<BattleItemSlot> currentItemSlots = new List<BattleItemSlot>();
 
+    [Header("Typewriter")]
+    public float typeSpeed = 0.02f;
+    private bool isTyping = false;
+
     // --- Action Queue ---
     private Queue<IEnumerator> battleActionQueue = new Queue<IEnumerator>();
     private bool isSequenceRunning = false;
@@ -72,6 +76,18 @@ public class BattleManager : MonoBehaviour
                 yield return null; // Wait a frame
             }
         }
+    }
+
+    private IEnumerator TypeSentence(string sentence)
+    {
+        isTyping = true;
+        commentText.text = ""; // Clear text
+        foreach (char letter in sentence.ToCharArray())
+        {
+            commentText.text += letter;
+            yield return new WaitForSeconds(typeSpeed);
+        }
+        isTyping = false;
     }
 
     void Awake()
@@ -268,15 +284,36 @@ public class BattleManager : MonoBehaviour
 
     IEnumerator ShowMessageAndWait(string message)
     {
-        commentText.SetText(message);
+        // 1. Start the typewriter
+        Coroutine typeRoutine = StartCoroutine(TypeSentence(message));
+
         continueArrow.gameObject.SetActive(true);
         Coroutine flashRoutine = StartCoroutine(FlashContinueArrow());
-
         isWaitingForInput = true;
-        yield return null;
-        yield return new WaitUntil(() => Input.GetKeyDown(KeyCode.Z));
-        isWaitingForInput = false;
 
+        yield return null;
+
+        // 2. Wait for "Z" press
+        while (!Input.GetKeyDown(KeyCode.Z))
+        {
+            yield return null; // Wait for the next frame
+        }
+
+        // 3. "Z" was pressed! Check our state.
+        if (isTyping)
+        {
+            // If we're still typing, stop the typewriter...
+            StopCoroutine(typeRoutine);
+            // ...and show the full message instantly.
+            commentText.text = message;
+            isTyping = false;
+
+            // Now, wait for the *next* "Z" press to continue
+            yield return null; // Wait a frame so we don't double-register
+            yield return new WaitUntil(() => Input.GetKeyDown(KeyCode.Z));
+        }
+
+        isWaitingForInput = false;
         StopCoroutine(flashRoutine);
         continueArrow.gameObject.SetActive(false);
     }
