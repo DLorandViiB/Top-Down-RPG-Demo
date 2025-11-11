@@ -32,7 +32,6 @@ public class InventoryManager : MonoBehaviour
         if (instance == null)
         {
             instance = this;
-            DontDestroyOnLoad(this.gameObject);
 
             for (int i = 0; i < totalSlots; i++)
             {
@@ -139,5 +138,15 @@ public class InventoryManager : MonoBehaviour
             slot.quantity = 0;
         }
         OnInventoryChanged?.Invoke(); // Tell the UI to update
+    }
+
+    public void ForceUIUpdate()
+    {
+        OnInventoryChanged?.Invoke();
+    }
+
+    public void NotifyInventoryChanged()
+    {
+        OnInventoryChanged?.Invoke();
     }
 }

@@ -16,20 +16,6 @@ public class PlayerStats : MonoBehaviour
 {
     public static PlayerStats instance;
 
-    //Singleton
-    private void Awake()
-    {
-        if (instance == null)
-        {
-            instance = this;
-            DontDestroyOnLoad(this.gameObject);
-        }
-        else
-        {
-            Destroy(this.gameObject);
-        }
-    }
-
     [Header("Base Stats")]
     public string playerName = "Hero";
     public int level = 1;
@@ -51,6 +37,20 @@ public class PlayerStats : MonoBehaviour
     public List<Buff> activeBuffs = new List<Buff>();
 
     public event Action OnStatsChanged;
+
+    private void Awake()
+    {
+        // This just sets the instance. 
+        // GameStatemanager handles persistence.
+        if (instance == null)
+        {
+            instance = this;
+        }
+        else
+        {
+            Destroy(this.gameObject);
+        }
+    }
 
     private void Start()
     {
@@ -151,8 +151,8 @@ public class PlayerStats : MonoBehaviour
         return true;
     }
 
-    // A private helper function to apply stats
-    private void ApplyPassiveStat(SkillData skill)
+    // A public helper function to apply stats
+    public void ApplyPassiveStat(SkillData skill)
     {
         if (skill.statToBoost == SkillData.StatToBoost.MaxHealth)
         {
@@ -229,5 +229,15 @@ public class PlayerStats : MonoBehaviour
     public void ClearAllBuffs()
     {
         activeBuffs.Clear();
+    }
+
+    public void ForceUIUpdate()
+    {
+        OnStatsChanged?.Invoke();
+    }
+
+    public void NotifyStatsChanged()
+    {
+        OnStatsChanged?.Invoke();
     }
 }
