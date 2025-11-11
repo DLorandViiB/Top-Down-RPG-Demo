@@ -1,40 +1,66 @@
 using UnityEngine;
+using UnityEngine.InputSystem;
 
-[RequireComponent(typeof(Collider2D))] // Needs a trigger collider
 public class PlayerInteraction : MonoBehaviour
 {
-    // This will hold a reference to the interactable object we are currently in range of
-    private IInteractable currentInteractable;
+    private IInteractable targetInteractable;
+    private PlayerMovement playerMovement; // For freezing
+
+    void Start()
+    {
+        // Get our own movement script
+        playerMovement = GetComponent<PlayerMovement>();
+    }
 
     void Update()
     {
-        // Check for "Z" key press
-        if (Input.GetKeyDown(KeyCode.Z) && currentInteractable != null)
+        var keyboard = Keyboard.current;
+        if (keyboard == null) return;
+
+        // Check for the 'Z' key press
+        if (keyboard.zKey.wasPressedThisFrame)
         {
-            // We are in range of something and pressed Z! Call its OnInteract function.
-            currentInteractable.OnInteract();
+            if (DialogueManager.instance != null && DialogueManager.instance.IsDialogueActive)
+            {
+                // If dialogue is active, send the "Z" press to the DialogueManager
+                DialogueManager.instance.HandleInput();
+            }
+            else if (targetInteractable != null)
+            {
+                // If not, tell our target to do its thing
+                targetInteractable.OnInteract();
+            }
         }
     }
 
+    // When our trigger collider ENTERS another trigger
     private void OnTriggerEnter2D(Collider2D other)
     {
-        // When we enter *any* trigger, check if it has an IInteractable script
-        if (other.TryGetComponent<IInteractable>(out IInteractable interactable))
+        // Check if the object has an "IInteractable" component
+        IInteractable interactable = other.GetComponent<IInteractable>();
+
+        if (interactable != null)
         {
-            // It does! Store it and tell it we're in range.
-            currentInteractable = interactable;
-            currentInteractable.OnPlayerEnterRange();
+            // Set it as our current target
+            targetInteractable = interactable;
+
+            // Show its indicator
+            targetInteractable.ShowIndicator();
         }
     }
 
+    // When our trigger collider EXITS another trigger
     private void OnTriggerExit2D(Collider2D other)
     {
-        // When we exit *any* trigger, check if it's the *same one* we are currently interacting with
-        if (other.TryGetComponent<IInteractable>(out IInteractable interactable) && interactable == currentInteractable)
+        IInteractable interactable = other.GetComponent<IInteractable>();
+
+        if (interactable != null && interactable == targetInteractable)
         {
-            // It is. Tell it we're leaving and clear our reference.
-            currentInteractable.OnPlayerExitRange();
-            currentInteractable = null;
+            // Hide the indicator
+            targetInteractable.HideIndicator();
+
+            // We've walked away, clear our target
+            targetInteractable = null;
         }
     }
 }

@@ -1,19 +1,11 @@
 public interface IInteractable
 {
-    /// <summary>
-    /// Called when the player presses the interact button ("Z").
-    /// </summary>
+    // Called by PlayerInteraction when 'Z' is pressed
     void OnInteract();
 
-    /// <summary>
-    /// Called by the player when they enter the object's trigger.
-    /// Used to show an indicator (e.g., "!")
-    /// </summary>
-    void OnPlayerEnterRange();
+    // Called by PlayerInteraction when player enters range
+    void ShowIndicator();
 
-    /// <summary>
-    /// Called by the player when they exit the object's trigger.
-    /// Used to hide the indicator.
-    /// </summary>
-    void OnPlayerExitRange();
+    // Called by PlayerInteraction when player leaves range
+    void HideIndicator();
 }

@@ -2,42 +2,38 @@ using UnityEngine;
 
 public class SavePoint : MonoBehaviour, IInteractable
 {
-    [Header("Visuals")]
-    [SerializeField]
-    private GameObject indicator;
+    public GameObject indicator;
+
+    [TextArea(3, 5)]
+    public string saveMessage = "Your progress has been saved.";
 
     void Start()
     {
-        // Ensure the indicator is hidden at the start
-        if (indicator != null)
-        {
-            indicator.SetActive(false);
-        }
+        if (indicator) indicator.SetActive(false);
     }
 
-    // This function is REQUIRED by the IInteractable contract
-    public void OnPlayerEnterRange()
-    {
-        // Show the "!" indicator
-        if (indicator != null)
-        {
-            indicator.SetActive(true);
-        }
-    }
-
-    // This function is REQUIRED by the IInteractable contract
-    public void OnPlayerExitRange()
-    {
-        // Hide the "!" indicator
-        if (indicator != null)
-        {
-            indicator.SetActive(false);
-        }
-    }
-
-    // This function is REQUIRED by the IInteractable contract
+    // This is called by PlayerInteraction.cs when 'Z' is pressed
     public void OnInteract()
     {
+        Debug.Log("Interactable: SavePoint activated.");
+
+        // 1. Actually save the game
         GameStatemanager.instance.SaveGame();
+
+        // 2. Create the list of sentences to show
+        string[] sentences = { saveMessage };
+
+        // 3. Call the DialogueManager to show the message
+        DialogueManager.instance.StartDialogue(sentences);
+    }
+
+    public void ShowIndicator()
+    {
+        if (indicator) indicator.SetActive(true);
+    }
+
+    public void HideIndicator()
+    {
+        if (indicator) indicator.SetActive(false);
     }
 }
