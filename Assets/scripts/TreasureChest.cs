@@ -93,6 +93,9 @@ public class TreasureChest : MonoBehaviour, IInteractable
 
     public void ShowIndicator()
     {
+        // Don't show the "!" if it's already open
+        if (isAlreadyOpened) return;
+
         if (indicator) indicator.SetActive(true);
     }
 

@@ -146,6 +146,20 @@ public class GameStatemanager : MonoBehaviour
         StartCoroutine(FadeIn());
     }
 
+    public void CaptureCurrentStateForSceneChange()
+    {
+        GameObject playerObj = GameObject.FindGameObjectWithTag("Player");
+        if (playerObj != null)
+        {
+            this.currentGameData = GatherGameData(playerObj);
+            Debug.Log("Game state captured for scene change at: " + this.currentGameData.playerPosition);
+        }
+        else
+        {
+            Debug.LogWarning("Could not find Player to capture state! State was not saved.");
+        }
+    }
+
     public void StartNewGame()
     {
         // We're starting fresh, so create a new, default GameData object

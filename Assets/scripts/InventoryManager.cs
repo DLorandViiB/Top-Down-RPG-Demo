@@ -86,6 +86,22 @@ public class InventoryManager : MonoBehaviour
         return false;
     }
 
+    public bool HasItem(ItemData itemToFind)
+    {
+        // Loop through all inventory slots
+        foreach (InventorySlot slot in slots)
+        {
+            // Check if the slot is not empty and matches the item
+            if (slot.item == itemToFind)
+            {
+                return true;
+            }
+        }
+
+        // If we finish the loop, we don't have it.
+        return false;
+    }
+
     // Empty string = success. Any other string = fail message.
     public string UseItem(InventorySlot slot)
     {
