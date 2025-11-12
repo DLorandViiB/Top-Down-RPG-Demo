@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 using TMPro;
 using System.Collections;
@@ -20,6 +21,7 @@ public class DialogueManager : MonoBehaviour
     private bool isDialogueActive = false;
     private bool isTyping = false;
     private string currentSentence;
+    private Action onDialogueCompleteCallback;
 
     private PlayerMovement playerMovement;
 
@@ -44,12 +46,13 @@ public class DialogueManager : MonoBehaviour
         playerMovement = FindFirstObjectByType<PlayerMovement>();
     }
 
-    public void StartDialogue(string[] dialogueLines)
+    public void StartDialogue(string[] dialogueLines, Action onComplete = null)
     {
         if (isDialogueActive) return;
 
         Debug.Log("Starting Dialogue...");
         isDialogueActive = true;
+        this.onDialogueCompleteCallback = onComplete;
 
         // Freeze player
         if (playerMovement != null)
@@ -131,15 +134,27 @@ public class DialogueManager : MonoBehaviour
     private void EndDialogue()
     {
         Debug.Log("Ending Dialogue.");
+
+        // 1. Store the callback in a temp variable
+        Action callbackToRun = onDialogueCompleteCallback;
+
+        // 2. Clear the callback and reset state *immediately*
+        onDialogueCompleteCallback = null;
         isDialogueActive = false;
         isTyping = false;
 
-        // Hide UI
+        // 3. Stop UI
         StopAllCoroutines();
         dialogueBox.SetActive(false);
 
-        // Unfreeze player
-        if (playerMovement != null)
+        // 4. Run the stored callback (if it exists)
+        if (callbackToRun != null)
+        {
+            callbackToRun.Invoke();
+        }
+
+        // 5. Unfreeze the player *only if* a new dialogue wasn't started
+        if (!isDialogueActive && playerMovement != null)
         {
             playerMovement.canMove = true;
         }

@@ -14,6 +14,7 @@ public class GameStatemanager : MonoBehaviour
     // --- SAVE SYSTEM ---
     private string saveFilePath;
     private GameData currentGameData;
+    private List<string> completedInteractionIDs;
 
     [Header("Persistent Data")]
     public EnemyData enemyToBattle; // We set this before loading BattleScene
@@ -136,6 +137,7 @@ public class GameStatemanager : MonoBehaviour
                     // This is a "New Game". currentGameData is null.
                     Debug.Log("Starting a new game. Using default manager states.");
                     InventoryManager.instance.AddStartingItems();
+                    this.completedInteractionIDs = new List<string>();
                 }
             }
         }
@@ -273,6 +275,9 @@ public class GameStatemanager : MonoBehaviour
             data.unlockedSkillIDs.Add(skill.skillName);
         }
 
+        // 5. Get World State
+        data.completedInteractionIDs = this.completedInteractionIDs;
+
         return data;
     }
 
@@ -344,6 +349,9 @@ public class GameStatemanager : MonoBehaviour
                 inventory.slots[i].quantity = 0;
             }
         }
+
+        // 5. Apply World State
+        this.completedInteractionIDs = data.completedInteractionIDs;
 
         // Manually trigger the UI update events
         stats.NotifyStatsChanged();
@@ -438,6 +446,36 @@ public class GameStatemanager : MonoBehaviour
     }
 
     #endregion
+
+    /// <summary>
+    /// Checks if a specific one-time event (like an NPC giving an item)
+    /// has already been completed.
+    /// </summary>
+    public bool IsInteractionCompleted(string id)
+    {
+        if (this.completedInteractionIDs == null)
+        {
+            this.completedInteractionIDs = new List<string>();
+        }
+        return this.completedInteractionIDs.Contains(id);
+    }
+
+    /// <summary>
+    /// Marks a one-time event as completed and saves it to memory.
+    /// (It will be saved to the file on the next SaveGame() call)
+    /// </summary>
+    public void MarkInteractionAsCompleted(string id)
+    {
+        if (this.completedInteractionIDs == null)
+        {
+            this.completedInteractionIDs = new List<string>();
+        }
+
+        if (!this.completedInteractionIDs.Contains(id))
+        {
+            this.completedInteractionIDs.Add(id);
+        }
+    }
 
     private IEnumerator EncounterCooldown()
     {

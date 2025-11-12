@@ -26,6 +26,7 @@ public class GameData
 
     // --- Skills (from PlayerStats.cs) ---
     public List<string> unlockedSkillIDs;
+    public List<string> completedInteractionIDs;
 
     // --- Constructor for a New Game ---
     // This defines the default values when starting fresh.
@@ -53,5 +54,6 @@ public class GameData
 
         // Skills
         this.unlockedSkillIDs = new List<string>();
+        this.completedInteractionIDs = new List<string>();
     }
 }
