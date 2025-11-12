@@ -19,6 +19,7 @@ public class DialogueManager : MonoBehaviour
     private Queue<string> sentences;
     private bool isDialogueActive = false;
     private bool isTyping = false;
+    private string currentSentence;
 
     private PlayerMovement playerMovement;
 
@@ -79,7 +80,7 @@ public class DialogueManager : MonoBehaviour
         {
             // Finish the sentence instantly
             StopAllCoroutines();
-            dialogueText.text = sentences.Peek(); // Show full text
+            dialogueText.text = currentSentence; // Show full text
             isTyping = false;
             continueIndicator.SetActive(true); // Show indicator
         }
@@ -103,19 +104,19 @@ public class DialogueManager : MonoBehaviour
         }
 
         // Dequeue the next sentence
-        string sentence = sentences.Dequeue();
+        currentSentence = sentences.Dequeue();
 
         // Start the typewriter coroutine
         StopAllCoroutines(); // Stop any previous ones
-        StartCoroutine(TypeSentence(sentence));
+        StartCoroutine(TypeSentence());
     }
 
-    private IEnumerator TypeSentence(string sentence)
+    private IEnumerator TypeSentence()
     {
         isTyping = true;
         dialogueText.text = ""; // Clear text
 
-        foreach (char letter in sentence.ToCharArray())
+        foreach (char letter in currentSentence.ToCharArray())
         {
             dialogueText.text += letter;
             yield return new WaitForSeconds(typeSpeed);

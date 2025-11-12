@@ -1,12 +1,14 @@
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
+using UnityEngine.InputSystem;
+using UnityEngine.EventSystems;
 
 public class MainMenu : MonoBehaviour
 {
     [Header("Buttons")]
-    [SerializeField]
-    private Button continueButton;
+    public Button newGameButton;
+    public Button continueButton;
 
     [Header("Scene To Load")]
     [SerializeField]
@@ -37,6 +39,31 @@ public class MainMenu : MonoBehaviour
         {
             // If no, disable it
             continueButton.interactable = false;
+        }
+    }
+
+    void Update()
+    {
+        var keyboard = Keyboard.current;
+        if (keyboard == null) return;
+
+        // Check if "Z" was pressed
+        if (keyboard.zKey.wasPressedThisFrame)
+        {
+            // Find out what object is currently selected
+            GameObject selectedObject = EventSystem.current.currentSelectedGameObject;
+
+            // If nothing is selected, do nothing
+            if (selectedObject == null) return;
+
+            // Try to get a Button component from the selected object
+            Button selectedButton = selectedObject.GetComponent<Button>();
+
+            // If it's a valid, interactable button, "click" it
+            if (selectedButton != null && selectedButton.interactable)
+            {
+                selectedButton.onClick.Invoke();
+            }
         }
     }
 

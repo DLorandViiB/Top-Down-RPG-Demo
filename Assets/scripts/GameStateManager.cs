@@ -126,13 +126,16 @@ public class GameStatemanager : MonoBehaviour
                 // --- 2. WE ARE LOADING FROM THE MENU (NEW or CONTINUE) ---
                 if (this.currentGameData != null)
                 {
+                    // This is a "Continue Game". currentGameData was loaded from a file.
+                    // We MUST apply the data.
+                    Debug.Log("Continuing game. Applying loaded data.");
                     ApplyGameData(this.currentGameData, playerObj);
                 }
                 else
                 {
-                    Debug.LogWarning("CurrentGameData is null. Starting a new game by default.");
-                    StartNewGame();
-                    ApplyGameData(this.currentGameData, playerObj);
+                    // This is a "New Game". currentGameData is null.
+                    Debug.Log("Starting a new game. Using default manager states.");
+                    InventoryManager.instance.AddStartingItems();
                 }
             }
         }
@@ -144,7 +147,7 @@ public class GameStatemanager : MonoBehaviour
     public void StartNewGame()
     {
         // We're starting fresh, so create a new, default GameData object
-        this.currentGameData = new GameData();
+        this.currentGameData = null;
         // The OnSceneLoaded event will handle applying this default data
     }
 
@@ -320,7 +323,7 @@ public class GameStatemanager : MonoBehaviour
             if (i < data.inventoryItemIDs.Count)
             {
                 string itemName = data.inventoryItemIDs[i];
-                if (itemName != null)
+                if (!string.IsNullOrEmpty(itemName))
                 {
                     // Load the item from the save file
                     inventory.slots[i].item = assets.GetItemByName(itemName);

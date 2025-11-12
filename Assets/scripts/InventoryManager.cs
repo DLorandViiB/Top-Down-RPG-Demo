@@ -37,14 +37,18 @@ public class InventoryManager : MonoBehaviour
             {
                 slots.Add(new InventorySlot());
             }
-            foreach (ItemData item in startingItems)
-            {
-                AddItem(item);
-            }
         }
         else
         {
             Destroy(this.gameObject);
+        }
+    }
+
+    public void AddStartingItems()
+    {
+        foreach (ItemData item in startingItems)
+        {
+            AddItem(item);
         }
     }
 
