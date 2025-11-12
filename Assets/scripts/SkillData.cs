@@ -16,7 +16,8 @@ public class SkillData : ScriptableObject
         InstantKill, 
         HealOnDamage,
         BuffAttack,
-        Thorns
+        Thorns,
+        GuardianAngel
     }
 
     // --- Then we define all our fields (variables) ---

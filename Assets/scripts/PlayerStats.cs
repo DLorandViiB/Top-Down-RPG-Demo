@@ -10,11 +10,29 @@ public struct TakeDamageResult
 
     public string healMessage;
     public int healAmount;
+
+    public string guardianAngelMessage;
+    public bool didGuardianAngelProc;
 }
 
 public class PlayerStats : MonoBehaviour
 {
     public static PlayerStats instance;
+
+    //Singleton
+    private void Awake()
+    {
+        // This just sets the instance. 
+        // GameStatemanager handles persistence.
+        if (instance == null)
+        {
+            instance = this;
+        }
+        else
+        {
+            Destroy(this.gameObject);
+        }
+    }
 
     [Header("Base Stats")]
     public string playerName = "Hero";
@@ -36,21 +54,10 @@ public class PlayerStats : MonoBehaviour
     public List<SkillData> unlockedSkills = new List<SkillData>();
     public List<Buff> activeBuffs = new List<Buff>();
 
-    public event Action OnStatsChanged;
+    // This flag is reset by BattleManager at the start of a fight
+    public bool hasGuardianAngelCastThisBattle = false;
 
-    private void Awake()
-    {
-        // This just sets the instance. 
-        // GameStatemanager handles persistence.
-        if (instance == null)
-        {
-            instance = this;
-        }
-        else
-        {
-            Destroy(this.gameObject);
-        }
-    }
+    public event Action OnStatsChanged;
 
     private void Start()
     {
@@ -60,18 +67,51 @@ public class PlayerStats : MonoBehaviour
         OnStatsChanged?.Invoke();
     }
 
+    public void PrepareForBattle()
+    {
+        this.hasGuardianAngelCastThisBattle = false;
+    }
+
     public TakeDamageResult TakeDamage(int damage)
     {
         int finalDamage = Mathf.Max(damage - defense, 1);
         currentHealth -= finalDamage;
-        if (currentHealth < 0) currentHealth = 0;
+
+        TakeDamageResult result = CheckBuffsOnDamage(finalDamage);
+
+        if (this.currentHealth <= 0)
+        {
+            // Player's health has hit 0. Check for a "death save".
+            for (int i = activeBuffs.Count - 1; i >= 0; i--)
+            {
+                if (activeBuffs[i].effect == SkillData.SkillEffect.GuardianAngel)
+                {
+                    // Heal to 30%
+                    int healAmount = Mathf.RoundToInt(this.maxHealth * 0.3f);
+                    this.currentHealth = healAmount;
+
+                    // Send this info back to BattleManager so it can show a message
+                    result.guardianAngelMessage = $"Guardian Angel saves you! You are restored to {healAmount} HP!";
+                    result.didGuardianAngelProc = true;
+
+                    // Remove the buff so it only procs once
+                    activeBuffs.RemoveAt(i);
+                    break;
+                }
+            }
+
+            // If we're still at 0 health (no buff found), player is defeated.
+            if (this.currentHealth <= 0)
+            {
+                this.currentHealth = 0;
+            }
+        }
 
         OnStatsChanged?.Invoke();
 
-        // Check for buffs and get the result
-        TakeDamageResult result = CheckBuffsOnDamage(finalDamage);
         return result;
     }
+
 
     public void GainXP(int amount)
     {
@@ -151,7 +191,6 @@ public class PlayerStats : MonoBehaviour
         return true;
     }
 
-    // A public helper function to apply stats
     public void ApplyPassiveStat(SkillData skill)
     {
         if (skill.statToBoost == SkillData.StatToBoost.MaxHealth)
@@ -203,9 +242,11 @@ public class PlayerStats : MonoBehaviour
     private TakeDamageResult CheckBuffsOnDamage(int damageTaken)
     {
         TakeDamageResult result = new TakeDamageResult();
-        // Initialize empty so we can check for null/empty later
+        // Initialize all fields
         result.thornsMessage = "";
         result.healMessage = "";
+        result.guardianAngelMessage = "";
+        result.didGuardianAngelProc = false;
 
         foreach (Buff buff in activeBuffs)
         {
@@ -213,7 +254,7 @@ public class PlayerStats : MonoBehaviour
             {
                 int healAmount = 10;
                 result.healAmount = healAmount;
-                result.healMessage = $"Guardian Angel heals you for {healAmount} HP!";
+                result.healMessage = $"Your 'Heal' restores {healAmount} HP!";
             }
 
             if (buff.effect == SkillData.SkillEffect.Thorns)
@@ -229,11 +270,6 @@ public class PlayerStats : MonoBehaviour
     public void ClearAllBuffs()
     {
         activeBuffs.Clear();
-    }
-
-    public void ForceUIUpdate()
-    {
-        OnStatsChanged?.Invoke();
     }
 
     public void NotifyStatsChanged()

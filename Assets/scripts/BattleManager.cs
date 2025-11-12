@@ -134,6 +134,8 @@ public class BattleManager : MonoBehaviour
         actionButtons[0].Select();
 
         StartCoroutine(RunBattleQueue()); // Start the "brain"
+
+        playerStats.PrepareForBattle();
     }
 
     public void UpdatePlayerUI()
@@ -368,6 +370,12 @@ public class BattleManager : MonoBehaviour
             damageResult = playerStats.TakeDamage(damage);
             UpdatePlayerUI();
             yield return StartCoroutine(ShowMessageAndWait($"{message} {damage} damage!"));
+
+            if (damageResult.didGuardianAngelProc)
+            {
+                UpdatePlayerUI();
+                yield return StartCoroutine(ShowMessageAndWait(damageResult.guardianAngelMessage));
+            }
         }
 
         if (damageResult.healAmount > 0)
@@ -508,9 +516,6 @@ public class BattleManager : MonoBehaviour
 
         switch (selectedSkill.effect)
         {
-            case SkillData.SkillEffect.Heal:
-                yield return StartCoroutine(PerformHeal(selectedSkill));
-                break;
             case SkillData.SkillEffect.GuaranteedRoll:
                 yield return StartCoroutine(PerformDamage(selectedSkill, 15));
                 break;
@@ -520,12 +525,34 @@ public class BattleManager : MonoBehaviour
             case SkillData.SkillEffect.InstantKill:
                 yield return StartCoroutine(PerformInstaKill(selectedSkill));
                 break;
+            case SkillData.SkillEffect.GuardianAngel:
+                if (playerStats.hasGuardianAngelCastThisBattle)
+                {
+                    yield return StartCoroutine(ShowMessageAndWait("You can only use this skill once per battle!"));
+                    SetButtonsInteractable(true);
+                    isPlayerTurn = true;
+                    actionButtons[1].Select(); // Select the "Skill" button
+                    yield break; // Stop the SkillSequence coroutine
+                }
+                else
+                {
+                    // This is the first time casting it
+                    playerStats.hasGuardianAngelCastThisBattle = true;
+
+                    Buff gaBuff = new Buff();
+                    gaBuff.effect = SkillData.SkillEffect.GuardianAngel;
+                    gaBuff.duration = 99; // Lasts the whole battle
+                    playerStats.AddBuff(gaBuff);
+
+                    yield return StartCoroutine(ShowMessageAndWait("You are protected by Guardian Angel!"));
+                }
+                break;
             case SkillData.SkillEffect.HealOnDamage:
                 Buff newBuff = new Buff();
                 newBuff.effect = selectedSkill.effect;
                 newBuff.duration = selectedSkill.buffDuration;
                 playerStats.AddBuff(newBuff);
-                yield return StartCoroutine(ShowMessageAndWait($"You are protected by {selectedSkill.skillName}!"));
+                yield return StartCoroutine(ShowMessageAndWait($"You used {selectedSkill.skillName}!"));
                 break;
             case SkillData.SkillEffect.Thorns:
                 Buff thornsBuff = new Buff();
