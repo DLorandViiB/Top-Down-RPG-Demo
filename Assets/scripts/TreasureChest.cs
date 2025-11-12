@@ -79,7 +79,6 @@ public class TreasureChest : MonoBehaviour, IInteractable
                 foreach (ItemData item in itemsToGive)
                 {
                     InventoryManager.instance.AddItem(item);
-                    messages.Add($"You received {item.itemName}!");
                 }
             }
             else
@@ -94,9 +93,6 @@ public class TreasureChest : MonoBehaviour, IInteractable
 
     public void ShowIndicator()
     {
-        // Don't show the "!" if it's already open
-        if (isAlreadyOpened) return;
-
         if (indicator) indicator.SetActive(true);
     }
 

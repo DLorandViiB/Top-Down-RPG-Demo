@@ -1,6 +1,7 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
 
+[RequireComponent(typeof(Collider2D))] // Good to have
 public class PlayerInteraction : MonoBehaviour
 {
     private IInteractable targetInteractable;
@@ -20,14 +21,15 @@ public class PlayerInteraction : MonoBehaviour
         // Check for the 'Z' key press
         if (keyboard.zKey.wasPressedThisFrame)
         {
+            // --- Priority 1: Is a dialogue box ALREADY active? ---
             if (DialogueManager.instance != null && DialogueManager.instance.IsDialogueActive)
             {
-                // If dialogue is active, send the "Z" press to the DialogueManager
                 DialogueManager.instance.HandleInput();
             }
+
+            // --- Priority 2: Are we trying to START a new interaction? ---
             else if (targetInteractable != null && playerMovement.canMove)
             {
-                // If not, tell our target to do its thing
                 targetInteractable.OnInteract();
             }
         }
@@ -36,15 +38,15 @@ public class PlayerInteraction : MonoBehaviour
     // When our trigger collider ENTERS another trigger
     private void OnTriggerEnter2D(Collider2D other)
     {
-        // Check if the object has an "IInteractable" component
-        IInteractable interactable = other.GetComponent<IInteractable>();
+        // We now check for IInteractable on the object *or its parent*.
+        IInteractable interactable = other.GetComponentInParent<IInteractable>();
 
         if (interactable != null)
         {
             // Set it as our current target
             targetInteractable = interactable;
 
-            // Show its indicator
+            // Show its indicator (this function name is correct)
             targetInteractable.ShowIndicator();
         }
     }
@@ -52,7 +54,8 @@ public class PlayerInteraction : MonoBehaviour
     // When our trigger collider EXITS another trigger
     private void OnTriggerExit2D(Collider2D other)
     {
-        IInteractable interactable = other.GetComponent<IInteractable>();
+        // We also check the parent on exit.
+        IInteractable interactable = other.GetComponentInParent<IInteractable>();
 
         if (interactable != null && interactable == targetInteractable)
         {

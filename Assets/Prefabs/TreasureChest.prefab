@@ -1,6 +1,6 @@
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
---- !u!1 &1074172726401215220
+--- !u!1 &210428442924467803
 GameObject:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -8,41 +8,41 @@ GameObject:
   m_PrefabAsset: {fileID: 0}
   serializedVersion: 6
   m_Component:
-  - component: {fileID: 2484228549752541731}
-  - component: {fileID: 8617194072071909718}
-  - component: {fileID: 2801983116619254137}
-  - component: {fileID: 5227500527816548430}
+  - component: {fileID: 1536588340218242013}
+  - component: {fileID: 1602862250347174459}
+  - component: {fileID: 7132045513928635346}
+  - component: {fileID: 8208655110920363537}
   m_Layer: 0
-  m_Name: NPC
+  m_Name: TreasureChest
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!4 &2484228549752541731
+--- !u!4 &1536588340218242013
 Transform:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1074172726401215220}
+  m_GameObject: {fileID: 210428442924467803}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -2.4914656, y: 8.410418, z: 0}
+  m_LocalPosition: {x: 7.738502, y: 4.65915, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
-  - {fileID: 7090374487102644309}
-  - {fileID: 3803112136144577945}
+  - {fileID: 1820021422596566072}
+  - {fileID: 8354068981194275826}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!212 &8617194072071909718
+--- !u!212 &1602862250347174459
 SpriteRenderer:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1074172726401215220}
+  m_GameObject: {fileID: 210428442924467803}
   m_Enabled: 1
   m_CastShadows: 0
   m_ReceiveShadows: 0
@@ -83,8 +83,8 @@ SpriteRenderer:
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 10
-  m_Sprite: {fileID: -8647878079042537369, guid: 7feed78ef6fd2aa4db15cf64462faa88, type: 3}
-  m_Color: {r: 1, g: 1, b: 1, a: 1}
+  m_Sprite: {fileID: 7482667652216324306, guid: 311925a002f4447b3a28927169b83ea6, type: 3}
+  m_Color: {r: 0.5396226, g: 0.3038352, b: 0, a: 1}
   m_FlipX: 0
   m_FlipY: 0
   m_DrawMode: 0
@@ -94,35 +94,13 @@ SpriteRenderer:
   m_WasSpriteAssigned: 1
   m_MaskInteraction: 0
   m_SpriteSortPoint: 0
---- !u!114 &2801983116619254137
-MonoBehaviour:
+--- !u!61 &7132045513928635346
+BoxCollider2D:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1074172726401215220}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e5f7c576fcd09b543ac8ad1ea7021a6e, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::NPC
-  indicator: {fileID: 2655772151599826704}
-  interactionID: TestNPC
-  initialDialogue:
-  - Hello traveller!
-  - I heard there's a Key somewhere in the forest maze
-  - Take this potion, it will surely come in handy
-  repeatedDialogue:
-  - Go, find that key
-  itemsToGive:
-  - {fileID: 11400000, guid: 3fe441f87ab4bd84e9b7b766d2ca5bfe, type: 2}
---- !u!58 &5227500527816548430
-CircleCollider2D:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1074172726401215220}
+  m_GameObject: {fileID: 210428442924467803}
   m_Enabled: 1
   serializedVersion: 3
   m_Density: 1
@@ -151,8 +129,37 @@ CircleCollider2D:
   m_CompositeOperation: 0
   m_CompositeOrder: 0
   m_Offset: {x: 0, y: 0}
-  m_Radius: 0.5
---- !u!1 &2189825514078018651
+  m_SpriteTilingProperty:
+    border: {x: 0, y: 0, z: 0, w: 0}
+    pivot: {x: 0.5, y: 0.5}
+    oldSize: {x: 1, y: 1}
+    newSize: {x: 1, y: 1}
+    adaptiveTilingThreshold: 0.5
+    drawMode: 0
+    adaptiveTiling: 0
+  m_AutoTiling: 0
+  m_Size: {x: 1, y: 1}
+  m_EdgeRadius: 0
+--- !u!114 &8208655110920363537
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 210428442924467803}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d8a277de8254c2f4ab11948cdf3a926a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::TreasureChest
+  indicator: {fileID: 3512399842880144426}
+  interactionID: Chest1
+  spriteOpened: {fileID: 10905, guid: 0000000000000000f000000000000000, type: 0}
+  itemsToGive:
+  - {fileID: 11400000, guid: 8857ee6757d3d344fb7d31e8e0ec3106, type: 2}
+  openMessage: You found a Strenght Rune.
+  emptyMessage: It's empty.
+--- !u!1 &2755863103381908471
 GameObject:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -160,37 +167,37 @@ GameObject:
   m_PrefabAsset: {fileID: 0}
   serializedVersion: 6
   m_Component:
-  - component: {fileID: 3803112136144577945}
-  - component: {fileID: 3357776915613860412}
+  - component: {fileID: 8354068981194275826}
+  - component: {fileID: 6127209252280816031}
   m_Layer: 0
-  m_Name: TriggerZone
+  m_Name: InteractionTrigger
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!4 &3803112136144577945
+--- !u!4 &8354068981194275826
 Transform:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2189825514078018651}
+  m_GameObject: {fileID: 2755863103381908471}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 2484228549752541731}
+  m_Father: {fileID: 1536588340218242013}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!58 &3357776915613860412
+--- !u!58 &6127209252280816031
 CircleCollider2D:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2189825514078018651}
+  m_GameObject: {fileID: 2755863103381908471}
   m_Enabled: 1
   serializedVersion: 3
   m_Density: 1
@@ -219,8 +226,8 @@ CircleCollider2D:
   m_CompositeOperation: 0
   m_CompositeOrder: 0
   m_Offset: {x: 0, y: 0}
-  m_Radius: 1
---- !u!1 &2655772151599826704
+  m_Radius: 1.2
+--- !u!1 &3512399842880144426
 GameObject:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -228,8 +235,8 @@ GameObject:
   m_PrefabAsset: {fileID: 0}
   serializedVersion: 6
   m_Component:
-  - component: {fileID: 7090374487102644309}
-  - component: {fileID: 7605760410077519853}
+  - component: {fileID: 1820021422596566072}
+  - component: {fileID: 1002647909758085237}
   m_Layer: 0
   m_Name: Indicator
   m_TagString: Untagged
@@ -237,28 +244,28 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!4 &7090374487102644309
+--- !u!4 &1820021422596566072
 Transform:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2655772151599826704}
+  m_GameObject: {fileID: 3512399842880144426}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0.0048308372, y: 0.86993027, z: 0}
+  m_LocalPosition: {x: 0.000037670135, y: 0.842484, z: 0}
   m_LocalScale: {x: 0.39999998, y: 0.39999998, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 2484228549752541731}
+  m_Father: {fileID: 1536588340218242013}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!212 &7605760410077519853
+--- !u!212 &1002647909758085237
 SpriteRenderer:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2655772151599826704}
+  m_GameObject: {fileID: 3512399842880144426}
   m_Enabled: 1
   m_CastShadows: 0
   m_ReceiveShadows: 0
