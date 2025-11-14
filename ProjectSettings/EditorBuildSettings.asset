@@ -20,6 +20,9 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/Scenes/DungeonScene.unity
     guid: 37c4ac473aff12f4f810215bba924ce9
+  - enabled: 1
+    path: Assets/Scenes/DeathScene.unity
+    guid: c2af73e31f9823c45846ff54f33e647e
   m_configObjects:
     com.unity.input.settings.actions: {fileID: -944628639613478452, guid: 2bcd2660ca9b64942af0de543d8d7100, type: 3}
   m_UseUCBPForAssetBundles: 0

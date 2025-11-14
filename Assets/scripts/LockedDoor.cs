@@ -17,6 +17,8 @@ public class LockedDoor : MonoBehaviour, IInteractable
     public ItemData requiredKey;
     [Tooltip("The name of the dungeon scene to load.")]
     public string sceneToLoad;
+    [Tooltip("The spawnPointID in the *next* scene where the player should appear.")]
+    public string spawnPointIDInNextScene;
     [Tooltip("The collider that makes this door solid. We will disable this.")]
     public Collider2D solidCollider;
 
@@ -56,6 +58,8 @@ public class LockedDoor : MonoBehaviour, IInteractable
                 // We need to tell the GameStatemanager to take a snapshot
                 // of our current state BEFORE we load the new scene.
                 GameStatemanager.instance.CaptureCurrentStateForSceneChange();
+
+                GameStatemanager.instance.SetNextSpawnPoint(spawnPointIDInNextScene);
                 SceneManager.LoadScene(sceneToLoad);
             }
         }

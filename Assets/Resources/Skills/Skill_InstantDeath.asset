@@ -22,3 +22,4 @@ MonoBehaviour:
   element: 0
   effect: 3
   buffDuration: 0
+  bossDamage: 100

@@ -3,6 +3,7 @@ using UnityEngine.UI;
 using TMPro;
 using System.Collections;
 using System.Collections.Generic;
+using UnityEngine.SceneManagement;
 
 public class BattleManager : MonoBehaviour
 {
@@ -398,6 +399,12 @@ public class BattleManager : MonoBehaviour
             }
         }
 
+        if (playerStats.currentHealth <= 0)
+        {
+            battleActionQueue.Enqueue(PlayerDefeated());
+            yield break;
+        }
+
         // --- END OF TURN ---
         playerStats.TickDownBuffs();
         SetButtonsInteractable(true);
@@ -727,6 +734,13 @@ public class BattleManager : MonoBehaviour
     public void OnRunButton()
     {
         if (!isPlayerTurn || isSequenceRunning) return;
+
+        if (enemy.enemyData.isBoss)
+        {
+            StartCoroutine(ShowMessageAndWait("You cannot escape from a boss!"));
+            return;
+        }
+
         isPlayerTurn = false;
         SetButtonsInteractable(false);
         battleActionQueue.Enqueue(RunAwaySequence());
@@ -736,6 +750,25 @@ public class BattleManager : MonoBehaviour
     {
         yield return StartCoroutine(ShowMessageAndWait("You got away safely!"));
         GameStatemanager.instance.EndBattle();
+    }
+
+    IEnumerator PlayerDefeated()
+    {
+        // 1. Show the defeat message
+        yield return StartCoroutine(ShowMessageAndWait("You have been defeated..."));
+
+        // 2. Tell the persistent manager to take over.
+        //    This is "fire and forget."
+        GameStatemanager.instance.TriggerGameOver();
+
+        // --- THIS IS THE FIX ---
+        // We must now "lock" this coroutine (and thus the RunBattleQueue)
+        // in an infinite loop so the BattleManager can't do anything else.
+        // The GameStatemanager is now in control and will handle the scene change.
+        while (true)
+        {
+            yield return null;
+        }
     }
 
     void GoBackToActions()
@@ -812,10 +845,26 @@ public class BattleManager : MonoBehaviour
 
         if (enemy.enemyData.isBoss)
         {
-            yield return StartCoroutine(ShowMessageAndWait("It has no effect on this powerful foe!"));
+            int damage = 0;
+
+            if (skill != null)
+            {
+                // It's a skill. Read the damage from the SkillData asset.
+                damage = skill.bossDamage;
+            }
+            else
+            {
+                // It's a "Natural 20" (skill is null).
+                damage = 100;
+            }
+
+            yield return StartCoroutine(ShowMessageAndWait($"It deals {damage} damage to the powerful foe!"));
+            enemy.TakeDamage(damage);
+            UpdateEnemyUI();
         }
         else
         {
+            // It's not a boss, so just insta-kill it.
             enemy.TakeDamage(9999);
             UpdateEnemyUI();
         }

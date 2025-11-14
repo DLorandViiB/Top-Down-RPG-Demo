@@ -20,6 +20,8 @@ public class GameData
     public int currentXP;
     public int xpToNextLevel;
 
+    public string sceneName;
+
     // --- Inventory (from InventoryManager.cs) ---
     public List<string> inventoryItemIDs;
     public List<int> inventoryItemQuantities;
@@ -47,6 +49,8 @@ public class GameData
         this.skillPoints = 10;
         this.currentXP = 0;
         this.xpToNextLevel = 100;
+
+        this.sceneName = "MainWorldScene";
 
         // Inventory
         this.inventoryItemIDs = new List<string>();

@@ -39,4 +39,5 @@ public class SkillData : ScriptableObject
     public ElementType element;
     public SkillEffect effect;
     public int buffDuration;
+    public int bossDamage;
 }

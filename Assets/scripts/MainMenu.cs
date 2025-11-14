@@ -74,18 +74,12 @@ public class MainMenu : MonoBehaviour
     {
         // Tell the manager to set up a new game
         gameManager.StartNewGame();
-
-        // Load the main game scene
-        SceneManager.LoadScene(mainGameScene);
     }
 
     public void OnContinueClicked()
     {
         // Tell the manager to load the saved data
         gameManager.ContinueGame();
-
-        // Load the main game scene
-        SceneManager.LoadScene(mainGameScene);
     }
 
     public void OnQuitClicked()

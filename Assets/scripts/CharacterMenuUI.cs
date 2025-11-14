@@ -55,9 +55,6 @@ public class CharacterMenuUI : MonoBehaviour
 
     void Start()
     {
-        // Find player
-        playerMovement = FindAnyObjectByType<PlayerMovement>();
-
         // Create inventory slots
         CreateSlots();
 
@@ -157,6 +154,17 @@ public class CharacterMenuUI : MonoBehaviour
 
     void OpenMenu()
     {
+        if (playerMovement == null)
+        {
+            playerMovement = FindAnyObjectByType<PlayerMovement>();
+
+            if (playerMovement == null)
+            {
+                Debug.LogError("CharacterMenuUI: Could not find PlayerMovement in the scene!");
+                return;
+            }
+        }
+
         if (isMenuOpen || characterMenu == null) return;
 
         isMenuOpen = true;

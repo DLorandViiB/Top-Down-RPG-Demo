@@ -35,6 +35,10 @@ public class GameStatemanager : MonoBehaviour
     public string overworldSceneName = "MainWorldScene";
 
     private bool isLoadingFromBattle = false;
+    private string nextSpawnPointID;
+
+    private string currentScriptedBattleID;
+    private string sceneToReturnTo;
 
     void Awake()
     {
@@ -58,6 +62,11 @@ public class GameStatemanager : MonoBehaviour
         }
     }
 
+    public void SetNextSpawnPoint(string spawnID)
+    {
+        this.nextSpawnPointID = spawnID;
+    }
+
     #region Scene Management
 
     void OnSceneLoaded(Scene scene, LoadSceneMode mode)
@@ -77,64 +86,55 @@ public class GameStatemanager : MonoBehaviour
             Debug.LogWarning("GameStatemanager: Could not find SceneUIRefs object in this scene!");
         }
 
-        // --- 2. HANDLE MAIN WORLD ---
-        if (scene.name == overworldSceneName)
+        // --- 2. HANDLE PLAYER AND CAMERA (THE FIX) ---
+        GameObject playerObj = GameObject.FindGameObjectWithTag("Player");
+        if (playerObj != null)
         {
-            // The scene is loaded, NOW we can safely find the player
-            GameObject playerObj = GameObject.FindGameObjectWithTag("Player");
-            if (playerObj != null)
-            {
-                playerMovement = playerObj.GetComponent<PlayerMovement>();
-                playerSpriteRenderer = playerObj.GetComponentInChildren<SpriteRenderer>();
+            // We found a player! This is a gameplay scene.
+            // Set up the playerMovement variable.
+            playerMovement = playerObj.GetComponent<PlayerMovement>();
+            playerSpriteRenderer = playerObj.GetComponentInChildren<SpriteRenderer>();
 
-                // Re-link the camera
-                CameraFollow camFollow = FindFirstObjectByType<CameraFollow>();
-                if (camFollow != null)
-                {
-                    camFollow.target = playerObj.transform;
-                }
-                else
-                {
-                    Debug.LogWarning("GameStatemanager: Could not find CameraFollow script!");
-                }
+            // Re-link the camera
+            CameraFollow camFollow = FindFirstObjectByType<CameraFollow>();
+            if (camFollow != null)
+            {
+                camFollow.target = playerObj.transform;
             }
             else
             {
-                Debug.LogError("GameStatemanager: Could not find object with tag 'Player' in scene!");
+                Debug.LogWarning("GameStatemanager: Could not find CameraFollow script!");
             }
 
+            // --- 3. HANDLE DATA & SPAWNING ---
             if (this.isLoadingFromBattle)
             {
-                // --- 1. WE ARE RETURNING FROM A BATTLE ---
-                if (playerObj != null && this.currentGameData != null)
+                // --- 3a. WE ARE RETURNING FROM A BATTLE ---
+                if (this.currentGameData != null)
                 {
-                    // Stop physics and restore position
                     Rigidbody2D rb = playerObj.GetComponent<Rigidbody2D>();
                     if (rb) rb.linearVelocity = Vector2.zero;
                     playerObj.transform.position = this.currentGameData.playerPosition;
-
                     Debug.Log("Returned from battle. Restored position to: " + this.currentGameData.playerPosition);
                 }
 
+                // Manually trigger UI updates for stats/items gained in battle
                 PlayerStats.instance.NotifyStatsChanged();
                 InventoryManager.instance.NotifyInventoryChanged();
-
-                // Reset the flag for next time.
                 this.isLoadingFromBattle = false;
             }
             else
             {
-                // --- 2. WE ARE LOADING FROM THE MENU (NEW or CONTINUE) ---
+                // --- 3b. WE ARE LOADING FROM THE MENU (NEW or CONTINUE) ---
                 if (this.currentGameData != null)
                 {
-                    // This is a "Continue Game". currentGameData was loaded from a file.
-                    // We MUST apply the data.
+                    // This is a "Continue Game". Apply the loaded data.
                     Debug.Log("Continuing game. Applying loaded data.");
                     ApplyGameData(this.currentGameData, playerObj);
                 }
                 else
                 {
-                    // This is a "New Game". currentGameData is null.
+                    // This is a "New Game". Use default states.
                     Debug.Log("Starting a new game. Using default manager states.");
                     InventoryManager.instance.AddStartingItems();
                     this.completedInteractionIDs = new List<string>();
@@ -142,8 +142,34 @@ public class GameStatemanager : MonoBehaviour
             }
         }
 
-        // --- 3. FADE IN ---
+        // --- 4. FADE IN ---
         StartCoroutine(FadeIn());
+
+        // --- 5. CHECK FOR A FORCED SPAWN POINT ---
+        if (!string.IsNullOrEmpty(this.nextSpawnPointID))
+        {
+            PlayerSpawnPoint[] spawnPoints = FindObjectsByType<PlayerSpawnPoint>(FindObjectsSortMode.None);
+            foreach (PlayerSpawnPoint spawnPoint in spawnPoints)
+            {
+                if (spawnPoint.spawnPointID == this.nextSpawnPointID)
+                {
+                    // Found our spawn point!
+                    if (playerObj != null)
+                    {
+                        // Stop physics and teleport
+                        Rigidbody2D rb = playerObj.GetComponent<Rigidbody2D>();
+                        if (rb) rb.linearVelocity = Vector2.zero;
+
+                        playerObj.transform.position = spawnPoint.transform.position;
+                        Debug.Log($"Player spawned at: {this.nextSpawnPointID}");
+                    }
+                    break; // Stop looping
+                }
+            }
+
+            // We've used the ID, so clear it for next time.
+            this.nextSpawnPointID = null;
+        }
     }
 
     public void CaptureCurrentStateForSceneChange()
@@ -162,20 +188,25 @@ public class GameStatemanager : MonoBehaviour
 
     public void StartNewGame()
     {
-        // We're starting fresh, so create a new, default GameData object
+        // We're starting fresh, so set data to null.
+        // OnSceneLoaded will see this and trigger a "New Game" setup.
         this.currentGameData = null;
-        // The OnSceneLoaded event will handle applying this default data
+
+        SceneManager.LoadScene(overworldSceneName);
     }
 
     public void ContinueGame()
     {
-        // Try to load the game from the file
-        // If it fails, just start a new game
-        if (!LoadGame())
+        // 1. Try to load the game from the file
+        if (!LoadGame()) // LoadGame() loads data into this.currentGameData
         {
+            Debug.LogWarning("Continue failed. Starting New Game.");
             StartNewGame();
+            return;
         }
-        // The OnSceneLoaded event will handle applying the loaded data
+
+        // 2. We have data! Load the correct scene.
+        SceneManager.LoadScene(this.currentGameData.sceneName);
     }
 
     #endregion
@@ -292,6 +323,8 @@ public class GameStatemanager : MonoBehaviour
         // 5. Get World State
         data.completedInteractionIDs = this.completedInteractionIDs;
 
+        data.sceneName = SceneManager.GetActiveScene().name;
+
         return data;
     }
 
@@ -376,12 +409,20 @@ public class GameStatemanager : MonoBehaviour
 
     #endregion
 
+    public void SetScriptedBattle(EnemyData enemy, string interactionID)
+    {
+        this.currentScriptedBattleID = interactionID;
+        StartBattle(enemy);
+    }
+
     // --- BATTLE & TRANSITION LOGIC (Your existing code) ---
 
     #region Battle & Transition Logic
 
     public void StartBattle(EnemyData enemy)
     {
+        this.sceneToReturnTo = SceneManager.GetActiveScene().name;
+
         // playerMovement is now found by OnSceneLoaded, so we just check if it exists
         if (playerMovement == null)
         {
@@ -431,12 +472,24 @@ public class GameStatemanager : MonoBehaviour
 
     private IEnumerator EndBattleTransition()
     {
+        if (enemyToBattle.isBoss && !string.IsNullOrEmpty(currentScriptedBattleID))
+        {
+            // We did! Mark this boss as "completed" in the save file.
+            MarkInteractionAsCompleted(currentScriptedBattleID);
+            Debug.Log($"Boss {currentScriptedBattleID} defeated and marked as complete.");
+
+            // Clear the ID so we don't re-mark it.
+            currentScriptedBattleID = null;
+        }
+
         // 1. Fade to black
         yield return StartCoroutine(FadeOut());
 
-        // 2. Load the main world
+        // 2. Load back from the battle
         this.isLoadingFromBattle = true;
-        yield return SceneManager.LoadSceneAsync(overworldSceneName);
+        string sceneName = string.IsNullOrEmpty(this.sceneToReturnTo) ? overworldSceneName : this.sceneToReturnTo;
+
+        yield return SceneManager.LoadSceneAsync(sceneName);
 
 
         // 3. Clear buffs
@@ -489,6 +542,24 @@ public class GameStatemanager : MonoBehaviour
         {
             this.completedInteractionIDs.Add(id);
         }
+    }
+
+    public void TriggerGameOver()
+    {
+        // We just start the coroutine.
+        StartCoroutine(GameOverCoroutine());
+    }
+
+    private IEnumerator GameOverCoroutine()
+    {
+        // Wait 1 second (to let the player read the "defeated" message)
+        yield return new WaitForSeconds(1.0f);
+
+        // Fade to black
+        yield return StartCoroutine(FadeOut());
+
+        // NOW, we safely load the scene from the persistent manager
+        SceneManager.LoadScene("DeathScene");
     }
 
     private IEnumerator EncounterCooldown()
