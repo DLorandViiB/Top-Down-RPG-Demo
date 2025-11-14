@@ -86,6 +86,7 @@ public class TreasureChest : MonoBehaviour, IInteractable
                 messages.Add("...but it was empty.");
             }
 
+            if (indicator) indicator.SetActive(false);
             // 4. Show the full message list
             DialogueManager.instance.StartDialogue(messages.ToArray());
         }

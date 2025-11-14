@@ -103,9 +103,6 @@ public class LockedDoor : MonoBehaviour, IInteractable
 
     public void ShowIndicator()
     {
-        // Don't show the "!" if the door is already unlocked
-        if (isUnlocked) return;
-
         if (indicator) indicator.SetActive(true);
     }
 
