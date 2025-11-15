@@ -14,6 +14,7 @@ public class EnemyData : ScriptableObject
     public int attack;
     public int defense;
     public int xpYield = 10;
+    public int currencyYield = 10;
     public bool isBoss = false;
 
     public ElementType element;

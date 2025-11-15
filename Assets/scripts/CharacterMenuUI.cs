@@ -92,7 +92,7 @@ public class CharacterMenuUI : MonoBehaviour
         if (keyboard == null) return;
 
         // Toggle the entire menu
-        if (keyboard.cKey.wasPressedThisFrame)
+        if (keyboard.cKey.wasPressedThisFrame && (playerMovement == null || playerMovement.canMove))
         {
             ToggleMenu();
         }

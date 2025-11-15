@@ -7,6 +7,7 @@ public class ItemData : ScriptableObject
     [TextArea(3, 10)]
     public string description;
     public Sprite icon;
+    public int price = 10;
 
     // We'll use this to decide what logic to run
     public enum ItemEffect

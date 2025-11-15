@@ -19,6 +19,7 @@ public class GameData
     public int skillPoints;
     public int currentXP;
     public int xpToNextLevel;
+    public int currentCurrency;
 
     public string sceneName;
 
@@ -49,6 +50,7 @@ public class GameData
         this.skillPoints = 10;
         this.currentXP = 0;
         this.xpToNextLevel = 100;
+        this.currentCurrency = 0;
 
         this.sceneName = "MainWorldScene";
 

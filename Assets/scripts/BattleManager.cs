@@ -416,10 +416,23 @@ public class BattleManager : MonoBehaviour
     {
         yield return StartCoroutine(ShowMessageAndWait($"You defeated the {enemy.enemyData.enemyName}!"));
 
+        int currencyGained = enemy.enemyData.currencyYield;
+        if (currencyGained > 0)
+        {
+            // We can add a little randomization here, just like XP
+            currencyGained += Random.Range(0, Mathf.Max(1, currencyGained / 10));
+            playerStats.AddCurrency(currencyGained);
+
+            yield return StartCoroutine(ShowMessageAndWait($"You got {currencyGained} coins!"));
+        }
+
+        // --- 2. Grant XP ---
         int xpGained = enemy.enemyData.xpYield + Random.Range(0, 20);
         playerStats.GainXP(xpGained);
 
         yield return StartCoroutine(ShowMessageAndWait($"You gained {xpGained} XP!"));
+
+        // --- 3. End Battle ---
         GameStatemanager.instance.EndBattle();
     }
 

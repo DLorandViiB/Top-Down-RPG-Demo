@@ -45,6 +45,7 @@ public class PlayerStats : MonoBehaviour
     public int defense = 5;
     public int luck = 2;
     public int skillPoints = 0;
+    public int currentCurrency = 0;
 
     [Header("Experience")]
     public int currentXP = 0;
@@ -122,6 +123,29 @@ public class PlayerStats : MonoBehaviour
         }
 
         OnStatsChanged?.Invoke();
+    }
+
+
+    public void AddCurrency(int amount)
+    {
+        currentCurrency += amount;
+        OnStatsChanged?.Invoke(); // Tell the UI to update
+    }
+
+    public bool SpendCurrency(int amount)
+    {
+        if (currentCurrency >= amount)
+        {
+            // We can afford it
+            currentCurrency -= amount;
+            OnStatsChanged?.Invoke(); // Tell the UI to update
+            return true; // Purchase was successful
+        }
+        else
+        {
+            // Can't afford
+            return false; // Purchase failed
+        }
     }
 
     private void LevelUp()

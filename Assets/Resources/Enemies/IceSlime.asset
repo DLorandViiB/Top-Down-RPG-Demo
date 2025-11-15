@@ -18,4 +18,6 @@ MonoBehaviour:
   attack: 4
   defense: 5
   xpYield: 15
+  currencyYield: 20
+  isBoss: 0
   element: 2

@@ -295,6 +295,7 @@ public class GameStatemanager : MonoBehaviour
         data.skillPoints = stats.skillPoints;
         data.currentXP = stats.currentXP;
         data.xpToNextLevel = stats.xpToNextLevel;
+        data.currentCurrency = stats.currentCurrency;
 
         // 3. Get Inventory
         data.inventoryItemIDs = new List<string>();
@@ -354,6 +355,7 @@ public class GameStatemanager : MonoBehaviour
         stats.skillPoints = data.skillPoints;
         stats.currentXP = data.currentXP;
         stats.xpToNextLevel = data.xpToNextLevel;
+        stats.currentCurrency = data.currentCurrency;
 
         // 3. Apply Skills (This just repopulates the skill list)
         stats.unlockedSkills.Clear();

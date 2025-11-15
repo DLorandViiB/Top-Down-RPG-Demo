@@ -18,6 +18,7 @@ public class TreasureChest : MonoBehaviour, IInteractable
     [Header("Contents")]
     [Tooltip("Items this chest will give ONCE.")]
     public List<ItemData> itemsToGive;
+    public int currencyToGive = 0;
 
     [Tooltip("Text to show when first opening, e.g., 'You found...'")]
     [TextArea(2, 5)]
@@ -60,34 +61,42 @@ public class TreasureChest : MonoBehaviour, IInteractable
         {
             // --- STATE 1: FIRST TIME OPENING ---
 
-            // 1. Mark as completed in the save system
+            // 1. Mark as completed
             GameStatemanager.instance.MarkInteractionAsCompleted(interactionID);
             isAlreadyOpened = true;
 
-            // 2. Change the sprite
+            // 2. Change sprite
             if (spriteRenderer && spriteOpened)
             {
                 spriteRenderer.sprite = spriteOpened;
             }
 
-            // 3. Give the items and build the message list
+            // 3. Build the message list and give rewards
             List<string> messages = new List<string>();
             messages.Add(openMessage); // Add the "You opened..." intro
 
+            // 4. GIVE CURRENCY
+            if (currencyToGive > 0)
+            {
+                PlayerStats.instance.AddCurrency(currencyToGive);
+                messages.Add($"You found {currencyToGive} coins!");
+            }
+
+            // 5. GIVE ITEMS
             if (itemsToGive != null && itemsToGive.Count > 0)
             {
                 foreach (ItemData item in itemsToGive)
                 {
                     InventoryManager.instance.AddItem(item);
+                    messages.Add($"You received {item.itemName}!");
                 }
             }
-            else
+            else if (currencyToGive <= 0) // Only say "empty" if there were no items AND no coins
             {
                 messages.Add("...but it was empty.");
             }
 
-            if (indicator) indicator.SetActive(false);
-            // 4. Show the full message list
+            // 6. Show all the messages
             DialogueManager.instance.StartDialogue(messages.ToArray());
         }
     }

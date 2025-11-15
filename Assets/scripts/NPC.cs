@@ -23,6 +23,7 @@ public class NPC : MonoBehaviour, IInteractable
     [Header("Items")]
     [Tooltip("Items this NPC will give ONCE upon first interaction.")]
     public List<ItemData> itemsToGive;
+    public int currencyToGive = 0;
 
     void Start()
     {
@@ -52,28 +53,41 @@ public class NPC : MonoBehaviour, IInteractable
 
     private void OnInitialDialogueComplete()
     {
-        // 1. Mark this interaction as "completed" in the save system
+        // 1. Mark this interaction as "completed"
         GameStatemanager.instance.MarkInteractionAsCompleted(interactionID);
 
-        // 2. Check if we have items to give
-        if (itemsToGive == null || itemsToGive.Count == 0)
+        // 2. Check if we have anything to give
+        bool hasItems = (itemsToGive != null && itemsToGive.Count > 0);
+        bool hasCurrency = (currencyToGive > 0);
+
+        if (!hasItems && !hasCurrency)
         {
-            // No items. We're done.
+            // This NPC gives no rewards, so we're done.
             return;
         }
 
-        // 3. We have items! Give them and build the "You received" messages.
+        // 3. We have rewards! Give them and build the message list.
         List<string> itemMessages = new List<string>();
 
-        Debug.Log($"Giving {itemsToGive.Count} items to player.");
-        foreach (ItemData item in itemsToGive)
+        // 4. GIVE CURRENCY
+        if (hasCurrency)
         {
-            InventoryManager.instance.AddItem(item);
-            // Create a new message for each item
-            itemMessages.Add($"You received {item.itemName}!");
+            PlayerStats.instance.AddCurrency(currencyToGive);
+            itemMessages.Add($"You received {currencyToGive} coins!");
         }
 
-        // 4. Call the DialogueManager *again* to show the item messages.
+        // 5. GIVE ITEMS
+        if (hasItems)
+        {
+            Debug.Log($"Giving {itemsToGive.Count} items to player.");
+            foreach (ItemData item in itemsToGive)
+            {
+                InventoryManager.instance.AddItem(item);
+                itemMessages.Add($"You received {item.itemName}!");
+            }
+        }
+
+        // 6. Call the DialogueManager *again* to show all the reward messages.
         DialogueManager.instance.StartDialogue(itemMessages.ToArray(), null);
     }
 
