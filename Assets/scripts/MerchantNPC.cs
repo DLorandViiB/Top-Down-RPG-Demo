@@ -9,7 +9,7 @@ public class MerchantNPC : MonoBehaviour, IInteractable
 
     [Header("Shop Stock")]
     [Tooltip("All the items this merchant will sell.")]
-    public List<ItemData> itemsForSale;
+    public List<InventorySlot> itemsForSale;
 
     [Header("Dialogue")]
     [Tooltip("Dialogue to show when the player interacts.")]

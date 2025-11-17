@@ -92,7 +92,7 @@ public class CharacterMenuUI : MonoBehaviour
         if (keyboard == null) return;
 
         // Toggle the entire menu
-        if (keyboard.cKey.wasPressedThisFrame && (playerMovement == null || playerMovement.canMove))
+        if (keyboard.cKey.wasPressedThisFrame)
         {
             ToggleMenu();
         }
@@ -156,26 +156,27 @@ public class CharacterMenuUI : MonoBehaviour
     {
         if (playerMovement == null)
         {
-            playerMovement = FindAnyObjectByType<PlayerMovement>();
-
+            playerMovement = FindFirstObjectByType<PlayerMovement>();
             if (playerMovement == null)
             {
-                Debug.LogError("CharacterMenuUI: Could not find PlayerMovement in the scene!");
+                Debug.LogError("CharacterMenuUI: Could not find PlayerMovement!");
                 return;
             }
+        }
+
+        // Now, check if we're *allowed* to open.
+        // If the player *can't* move, it means another menu (like the Shop) is open.
+        if (playerMovement.canMove == false)
+        {
+            return;
         }
 
         if (isMenuOpen || characterMenu == null) return;
 
         isMenuOpen = true;
         characterMenu.SetActive(true);
-        Time.timeScale = 0f;
 
-        if (playerMovement != null)
-        {
-            playerMovement.canMove = false;
-            playerMovement.StopMovement();
-        }
+        GameStatemanager.instance.RequestUIPause();
 
         if (PlayerStats.instance != null)
         {
@@ -202,12 +203,8 @@ public class CharacterMenuUI : MonoBehaviour
 
         isMenuOpen = false;
         characterMenu.SetActive(false);
-        Time.timeScale = 1f;
 
-        if (playerMovement != null)
-        {
-            playerMovement.canMove = true;
-        }
+        GameStatemanager.instance.ReleaseUIPause();
 
         if (PlayerStats.instance != null)
         {

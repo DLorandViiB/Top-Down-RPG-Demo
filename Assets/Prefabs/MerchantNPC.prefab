@@ -144,11 +144,12 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::MerchantNPC
   indicator: {fileID: 2655772151599826704}
   itemsForSale:
-  - {fileID: 11400000, guid: 3fe441f87ab4bd84e9b7b766d2ca5bfe, type: 2}
-  - {fileID: 11400000, guid: 3fe441f87ab4bd84e9b7b766d2ca5bfe, type: 2}
-  - {fileID: 11400000, guid: 3442418079cb72a47b62c73df5ec0f1c, type: 2}
-  - {fileID: 11400000, guid: 8857ee6757d3d344fb7d31e8e0ec3106, type: 2}
-  - {fileID: 11400000, guid: 14368fec615c9c846807422c80a4962a, type: 2}
+  - item: {fileID: 11400000, guid: 3fe441f87ab4bd84e9b7b766d2ca5bfe, type: 2}
+    quantity: 3
+  - item: {fileID: 11400000, guid: 3442418079cb72a47b62c73df5ec0f1c, type: 2}
+    quantity: 2
+  - item: {fileID: 11400000, guid: 14368fec615c9c846807422c80a4962a, type: 2}
+    quantity: 1
   greetingMessage: Welcome! Care to take a look at my wares?
   farewellMessage: Come back any time!
 --- !u!1 &2189825514078018651

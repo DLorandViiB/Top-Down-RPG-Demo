@@ -39,6 +39,7 @@ public class GameStatemanager : MonoBehaviour
 
     private string currentScriptedBattleID;
     private string sceneToReturnTo;
+    private int uiPauseCounter = 0;
 
     void Awake()
     {
@@ -407,6 +408,52 @@ public class GameStatemanager : MonoBehaviour
         inventory.NotifyInventoryChanged();
 
         Debug.Log("Game data applied successfully.");
+    }
+
+    /// <summary>
+    /// Called by a UI script (like ShopUI) to request a game pause.
+    /// </summary>
+    public void RequestUIPause()
+    {
+        // "Lazy find" the player if we don't have it
+        if (playerMovement == null)
+        {
+            GameObject playerObj = GameObject.FindGameObjectWithTag("Player");
+            if (playerObj)
+                playerMovement = playerObj.GetComponent<PlayerMovement>();
+        }
+
+        uiPauseCounter++; // Add this menu to the "pause list"
+
+        // If this is the *first* menu to open, pause the game.
+        if (uiPauseCounter == 1)
+        {
+            Time.timeScale = 0f;
+            if (playerMovement != null)
+            {
+                playerMovement.canMove = false;
+                playerMovement.StopMovement();
+            }
+        }
+    }
+
+    /// <summary>
+    /// Called by a UI script when it closes.
+    /// </summary>
+    public void ReleaseUIPause()
+    {
+        uiPauseCounter--; // Remove this menu from the "pause list"
+
+        // If this was the *last* menu to close, un-pause the game.
+        if (uiPauseCounter <= 0)
+        {
+            uiPauseCounter = 0; // Failsafe
+            Time.timeScale = 1f;
+            if (playerMovement != null)
+            {
+                playerMovement.canMove = true;
+            }
+        }
     }
 
     #endregion

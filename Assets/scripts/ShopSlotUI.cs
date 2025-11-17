@@ -9,27 +9,33 @@ public class ShopSlotUI : MonoBehaviour
     public TextMeshProUGUI quantityText;
     public GameObject highlight;
 
-    // This is the "Buy" setup (from ItemData)
-    public void Setup(ItemData item)
-    {
-        icon.sprite = item.icon;
-
-        // Hide quantity for "Buy" (since it's infinite)
-        if (quantityText) quantityText.gameObject.SetActive(false);
-        Deselect();
-    }
-
-    // This is the "Sell" setup (from InventorySlot)
-    public void Setup(InventorySlot slot)
+    /// <summary>
+    /// A single function to set up the slot for
+    /// both Buying (from merchant) and Selling (from player).
+    /// </summary>
+    public void Setup(InventorySlot slot, bool isBuySlot)
     {
         icon.sprite = slot.item.icon;
 
-        // Show quantity for "Sell"
-        if (quantityText)
+        if (isBuySlot)
         {
-            quantityText.gameObject.SetActive(true);
-            quantityText.text = $"x{slot.quantity}";
+            // This is a "BUY" slot. Show stock quantity.
+            if (quantityText)
+            {
+                quantityText.gameObject.SetActive(true);
+                quantityText.text = $"x{slot.quantity}";
+            }
         }
+        else
+        {
+            // This is a "SELL" slot. Show player quantity.
+            if (quantityText)
+            {
+                quantityText.gameObject.SetActive(true);
+                quantityText.text = $"x{slot.quantity}";
+            }
+        }
+
         Deselect();
     }
 

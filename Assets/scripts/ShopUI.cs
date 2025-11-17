@@ -10,7 +10,7 @@ public class ShopUI : MonoBehaviour
     public static ShopUI instance;
 
     [Header("Main Panel")]
-    public GameObject shopPanel; // The entire shop parent object
+    public GameObject shopPanel;
     public TextMeshProUGUI playerCurrencyText;
 
     [Header("Description Panel (Bottom)")]
@@ -19,21 +19,16 @@ public class ShopUI : MonoBehaviour
     public TextMeshProUGUI itemPriceText;
 
     [Header("Sliding Panels")]
-    public RectTransform buyPanelGroup;  // The "Buy" panel
-    public RectTransform sellPanelGroup; // The "Sell" panel
+    public RectTransform buyPanelGroup;
+    public RectTransform sellPanelGroup;
 
     [Header("Panel Indicators (Tabs)")]
-    [Tooltip("Text that says 'Sell (E)->'")]
     public GameObject buyPanelIndicator;
-    [Tooltip("Text that says '<- (Q) Buy'")]
     public GameObject sellPanelIndicator;
 
     [Header("Slot Containers")]
-    [Tooltip("The parent object with the VerticalLayoutGroup for BUY slots")]
     public Transform buyListPanel;
-    [Tooltip("The prefab for a shop slot")]
     public GameObject slotPrefab;
-    [Tooltip("The parent object with the VerticalLayoutGroup for SELL slots")]
     public Transform sellListPanel;
 
     [Header("Slide Settings (from CharacterMenuUI)")]
@@ -45,14 +40,15 @@ public class ShopUI : MonoBehaviour
     // --- STATE ---
     private PlayerMovement playerMovement;
     private bool isShopOpen = false;
-    private bool isBuyPanelOnScreen = true; // Start on the "Buy" panel
-    private bool isAnimating = false; // To prevent spamming
+    private bool isBuyPanelOnScreen = true;
+    private bool isAnimating = false;
 
-    // Item lists
-    private List<ItemData> currentMerchantStock;
+    // --- BUG FIX 1: This is now List<InventorySlot> ---
+    private List<InventorySlot> currentMerchantStock;
+
+    // --- BUG FIX 2: This is now List<InventorySlot> ---
     private List<InventorySlot> playerSellableItems;
 
-    // UI Slot lists
     private List<ShopSlotUI> buySlots = new List<ShopSlotUI>();
     private List<ShopSlotUI> sellSlots = new List<ShopSlotUI>();
 
@@ -70,62 +66,68 @@ public class ShopUI : MonoBehaviour
             Destroy(this.gameObject);
         }
 
+        // Initialize the new list types
         playerSellableItems = new List<InventorySlot>();
+        currentMerchantStock = new List<InventorySlot>();
         buySlots = new List<ShopSlotUI>();
         sellSlots = new List<ShopSlotUI>();
     }
 
     void Start()
     {
-        // We calculate the slide positions.
-        onScreenPos = buyPanelGroup.anchoredPosition; // Should be (0, 0)
-
-        // Use Screen.width for a more robust slide distance
+        onScreenPos = buyPanelGroup.anchoredPosition;
         float slideDistance = ((RectTransform)transform).rect.width;
-
         offScreenPosLeft = new Vector2(onScreenPos.x - slideDistance, onScreenPos.y);
         offScreenPosRight = new Vector2(onScreenPos.x + slideDistance, onScreenPos.y);
 
-        // Set initial positions
         buyPanelGroup.anchoredPosition = onScreenPos;
         sellPanelGroup.anchoredPosition = offScreenPosRight;
-
         shopPanel.SetActive(false);
     }
 
-    // This is called by the MerchantNPC
-    public void OpenShop(List<ItemData> itemsForSale)
+    public void OpenShop(List<InventorySlot> itemsForSale)
     {
         if (playerMovement == null)
         {
             playerMovement = FindFirstObjectByType<PlayerMovement>();
         }
 
-        // 1. Freeze player and stop time
-        if (playerMovement)
+        GameStatemanager.instance.RequestUIPause();
+
+        // BLOCK other player systems so they can't respond to input while shop is open
+        if (playerMovement != null)
         {
             playerMovement.canMove = false;
-            playerMovement.StopMovement();
         }
-        Time.timeScale = 0f;
 
-        // 2. Set state
+        // Disable the PlayerInteraction script so Z won't start a new NPC interaction
+        PlayerInteraction pi = FindFirstObjectByType<PlayerInteraction>();
+        if (pi != null)
+        {
+            pi.enabled = false;
+        }
+
+        // Disable the CharacterMenuUI script so C (and its Update loops) won't open the character menu
+        CharacterMenuUI cm = FindFirstObjectByType<CharacterMenuUI>();
+        if (cm != null)
+        {
+            cm.enabled = false;
+        }
+        // -------------------------------------------------------------------------------
+
         isShopOpen = true;
         shopPanel.SetActive(true);
-        this.currentMerchantStock = itemsForSale;
+        this.currentMerchantStock = itemsForSale; // This now works
 
-        // 3. Reset to default state
         isBuyPanelOnScreen = true;
         buyPanelGroup.anchoredPosition = onScreenPos;
         sellPanelGroup.anchoredPosition = offScreenPosRight;
         selectedBuyIndex = 0;
         selectedSellIndex = 0;
 
-        // 4. Subscribe to events
         PlayerStats.instance.OnStatsChanged += UpdateCurrencyText;
         InventoryManager.instance.OnInventoryChanged += RedrawSellList;
 
-        // 5. Draw everything
         RedrawBuyList();
         RedrawSellList();
         UpdateCurrencyText();
@@ -134,22 +136,34 @@ public class ShopUI : MonoBehaviour
 
     public void CloseShop()
     {
-        // 1. Unfreeze
-        if (playerMovement)
+        GameStatemanager.instance.ReleaseUIPause();
+
+        // UNBLOCK other player systems
+        if (playerMovement != null)
         {
             playerMovement.canMove = true;
         }
-        Time.timeScale = 1f;
 
-        // 2. Reset state
+        PlayerInteraction pi = FindFirstObjectByType<PlayerInteraction>();
+        if (pi != null)
+        {
+            pi.enabled = true;
+        }
+
+        CharacterMenuUI cm = FindFirstObjectByType<CharacterMenuUI>();
+        if (cm != null)
+        {
+            cm.enabled = true;
+        }
+
         isShopOpen = false;
         shopPanel.SetActive(false);
         isAnimating = false;
 
-        // 3. Unsubscribe from events
         PlayerStats.instance.OnStatsChanged -= UpdateCurrencyText;
         InventoryManager.instance.OnInventoryChanged -= RedrawSellList;
     }
+
 
     void Update()
     {
@@ -158,28 +172,23 @@ public class ShopUI : MonoBehaviour
         var keyboard = Keyboard.current;
         if (keyboard == null) return;
 
-        // 1. Close Menu
-        if (keyboard.xKey.wasPressedThisFrame)
+        if (keyboard.cKey.wasPressedThisFrame)
         {
             CloseShop();
             return;
         }
 
-        // 2. Panel Switching
         if (keyboard.eKey.wasPressedThisFrame && isBuyPanelOnScreen)
         {
-            // Switch from Buy to Sell
             StartCoroutine(SlidePanels(buyPanelGroup, sellPanelGroup, offScreenPosLeft, onScreenPos));
             isBuyPanelOnScreen = false;
         }
         else if (keyboard.qKey.wasPressedThisFrame && !isBuyPanelOnScreen)
         {
-            // Switch from Sell to Buy
             StartCoroutine(SlidePanels(sellPanelGroup, buyPanelGroup, offScreenPosRight, onScreenPos));
             isBuyPanelOnScreen = true;
         }
 
-        // 3. Handle Navigation
         if (isBuyPanelOnScreen)
         {
             HandleNavigation(keyboard, buySlots, ref selectedBuyIndex);
@@ -189,7 +198,6 @@ public class ShopUI : MonoBehaviour
             HandleNavigation(keyboard, sellSlots, ref selectedSellIndex);
         }
 
-        // 4. Handle "Confirm"
         if (keyboard.zKey.wasPressedThisFrame)
         {
             OnConfirm();
@@ -205,7 +213,6 @@ public class ShopUI : MonoBehaviour
 
         while (t < 1.0f)
         {
-            // We use unscaledDeltaTime because Time.timeScale is 0!
             t += Time.unscaledDeltaTime * slideSpeed;
             panelToHide.anchoredPosition = Vector2.Lerp(startHidePos, hidePos, t);
             panelToShow.anchoredPosition = Vector2.Lerp(startShowPos, showPos, t);
@@ -215,7 +222,6 @@ public class ShopUI : MonoBehaviour
         panelToHide.anchoredPosition = hidePos;
         panelToShow.anchoredPosition = showPos;
 
-        // Update UI after the slide is finished
         UpdatePanelSelection();
         isAnimating = false;
     }
@@ -226,6 +232,7 @@ public class ShopUI : MonoBehaviour
 
         int oldIndex = index;
 
+        // We now use Left and Right arrows for navigation.
         if (keyboard.rightArrowKey.wasPressedThisFrame)
         {
             index++;
@@ -235,6 +242,7 @@ public class ShopUI : MonoBehaviour
             index--;
         }
 
+        // Clamp index to the list size
         index = Mathf.Clamp(index, 0, list.Count - 1);
 
         if (oldIndex != index)
@@ -250,11 +258,26 @@ public class ShopUI : MonoBehaviour
             // --- TRY TO BUY ---
             if (buySlots.Count == 0 || selectedBuyIndex >= currentMerchantStock.Count) return;
 
-            ItemData itemToBuy = currentMerchantStock[selectedBuyIndex];
+            // This is now an InventorySlot
+            InventorySlot slotToBuy = currentMerchantStock[selectedBuyIndex];
+            ItemData itemToBuy = slotToBuy.item;
 
             if (PlayerStats.instance.SpendCurrency(itemToBuy.price))
             {
                 InventoryManager.instance.AddItem(itemToBuy);
+
+                // Decrement stock
+                slotToBuy.quantity--;
+
+                // Redraw the single slot we just bought from
+                buySlots[selectedBuyIndex].Setup(slotToBuy, isBuySlot: true);
+
+                if (slotToBuy.quantity <= 0)
+                {
+                    // Sold out! Remove it and redraw everything
+                    currentMerchantStock.RemoveAt(selectedBuyIndex);
+                    RedrawBuyList();
+                }
             }
             else
             {
@@ -272,23 +295,32 @@ public class ShopUI : MonoBehaviour
 
             PlayerStats.instance.AddCurrency(sellPrice);
             InventoryManager.instance.RemoveItem(slotToSell, 1);
+
+            // OnInventoryChanged will trigger RedrawSellList,
+            // but we can call it manually to be safe.
+            RedrawSellList();
         }
     }
-
 
     void RedrawBuyList()
     {
         foreach (Transform child in buyListPanel) { Destroy(child.gameObject); }
         buySlots.Clear();
 
+        // currentMerchantStock is now List<InventorySlot>, this is correct
         for (int i = 0; i < currentMerchantStock.Count; i++)
         {
             GameObject slotObj = Instantiate(slotPrefab, buyListPanel);
             ShopSlotUI slotUI = slotObj.GetComponent<ShopSlotUI>();
-            slotUI.Setup(currentMerchantStock[i]);
+
+            // This call is now correct
+            slotUI.Setup(currentMerchantStock[i], isBuySlot: true);
             buySlots.Add(slotUI);
         }
-        UpdateSlotSelection(); // Update after redrawing
+
+        // Clamp index after redrawing
+        selectedBuyIndex = Mathf.Clamp(selectedBuyIndex, 0, buySlots.Count - 1);
+        UpdateSlotSelection();
     }
 
     void RedrawSellList()
@@ -297,20 +329,24 @@ public class ShopUI : MonoBehaviour
         sellSlots.Clear();
         playerSellableItems.Clear();
 
-        // Find all sellable items
         foreach (InventorySlot slot in InventoryManager.instance.slots)
         {
             if (slot.item != null)
             {
-                playerSellableItems.Add(slot); // Add to our logic list
+                playerSellableItems.Add(slot);
 
                 GameObject slotObj = Instantiate(slotPrefab, sellListPanel);
                 ShopSlotUI slotUI = slotObj.GetComponent<ShopSlotUI>();
-                slotUI.Setup(slot); // Setup the visual
+
+                // This call is now correct
+                slotUI.Setup(slot, isBuySlot: false);
                 sellSlots.Add(slotUI);
             }
         }
-        UpdateSlotSelection(); // Update after redrawing
+
+        // Clamp index after redrawing
+        selectedSellIndex = Mathf.Clamp(selectedSellIndex, 0, sellSlots.Count - 1);
+        UpdateSlotSelection();
     }
 
     void UpdateCurrencyText()
@@ -320,34 +356,29 @@ public class ShopUI : MonoBehaviour
 
     void UpdatePanelSelection()
     {
-        // This just toggles the "Buy (E->)" and "<- (Q) Sell" hints
         if (buyPanelIndicator) buyPanelIndicator.SetActive(isBuyPanelOnScreen);
         if (sellPanelIndicator) sellPanelIndicator.SetActive(!isBuyPanelOnScreen);
 
-        // And reset the description box
         UpdateSlotSelection();
     }
 
     void UpdateSlotSelection()
     {
-        // 1. Deselect all slots
         foreach (var slot in buySlots) { slot.Deselect(); }
         foreach (var slot in sellSlots) { slot.Deselect(); }
 
-        // 2. Select the correct one and update description
         if (isBuyPanelOnScreen)
         {
             if (buySlots.Count > 0 && selectedBuyIndex < buySlots.Count)
             {
                 buySlots[selectedBuyIndex].Select();
-                ItemData item = currentMerchantStock[selectedBuyIndex];
-                itemNameText.text = item.itemName;
-                itemDescriptionText.text = item.description;
-                itemPriceText.text = $"{item.price} Coins";
+                InventorySlot slot = currentMerchantStock[selectedBuyIndex];
+                itemNameText.text = slot.item.itemName;
+                itemDescriptionText.text = slot.item.description;
+                itemPriceText.text = $"{slot.item.price} Coins";
             }
             else
             {
-                // No items to buy
                 itemNameText.text = "Sold Out";
                 itemDescriptionText.text = "This merchant has nothing left to sell.";
                 itemPriceText.text = "";
@@ -366,7 +397,6 @@ public class ShopUI : MonoBehaviour
             }
             else
             {
-                // No items to sell
                 itemNameText.text = "Empty Pockets";
                 itemDescriptionText.text = "You have no items to sell.";
                 itemPriceText.text = "";
