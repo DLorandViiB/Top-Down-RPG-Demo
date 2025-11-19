@@ -1893,6 +1893,10 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 1602862250347174459, guid: f914f4c932e91c542ab777fbe7f5439b, type: 3}
+      propertyPath: m_Sprite
+      value: 
+      objectReference: {fileID: 9116851946686450653, guid: 12cf72c3b40a00e43954cb4ae39dc8bb, type: 3}
     - target: {fileID: 8208655110920363537, guid: f914f4c932e91c542ab777fbe7f5439b, type: 3}
       propertyPath: openMessage
       value: You opened the chest.

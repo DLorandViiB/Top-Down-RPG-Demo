@@ -14,7 +14,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::ItemData
   itemName: Health Potion
   description: Restores 50 HP
-  icon: {fileID: 983986505063480906, guid: f9048655d8b478c45aa4e5977b7d5520, type: 3}
+  icon: {fileID: 8717908661333387831, guid: 4387e6e140b438b4dba4274da7de68dc, type: 3}
+  price: 10
   effect: 0
   amount: 50
   canUseInBattle: 1
