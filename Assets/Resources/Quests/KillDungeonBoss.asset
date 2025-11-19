@@ -1,0 +1,28 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 18e30438ae035774489771a20ce731c2, type: 3}
+  m_Name: KillDungeonBoss
+  m_EditorClassIdentifier: Assembly-CSharp::QuestData
+  questID: kill_dungeon_boss
+  title: A Mighty Beast
+  description: 'The Dungeon is the home of a mighty beast, that''s waiting to be
+    defeated by a worthy hero.
+
+
+    Defeat the Boss.'
+  questType: 1
+  itemRequirement: {fileID: 0}
+  killTargetID: DemoBoss
+  requiredAmount: 1
+  itemRewards: []
+  xpReward: 500
+  currencyReward: 200

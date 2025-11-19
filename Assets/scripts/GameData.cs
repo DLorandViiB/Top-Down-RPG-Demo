@@ -31,6 +31,11 @@ public class GameData
     public List<string> unlockedSkillIDs;
     public List<string> completedInteractionIDs;
 
+    // --- Quests ---
+    public List<string> activeQuestIDs;
+    public List<int> activeQuestProgress; // Matches index of activeQuestIDs
+    public List<string> completedQuestIDs;
+
     // --- Constructor for a New Game ---
     // This defines the default values when starting fresh.
     public GameData()
@@ -61,5 +66,9 @@ public class GameData
         // Skills
         this.unlockedSkillIDs = new List<string>();
         this.completedInteractionIDs = new List<string>();
+
+        this.activeQuestIDs = new List<string>();
+        this.activeQuestProgress = new List<int>();
+        this.completedQuestIDs = new List<string>();
     }
 }

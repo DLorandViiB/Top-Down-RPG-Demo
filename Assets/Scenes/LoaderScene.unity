@@ -133,6 +133,7 @@ GameObject:
   - component: {fileID: 464531563}
   - component: {fileID: 464531562}
   - component: {fileID: 464531561}
+  - component: {fileID: 464531565}
   m_Layer: 0
   m_Name: ---PERSISTENT_MANAGERS---
   m_TagString: Untagged
@@ -202,10 +203,12 @@ MonoBehaviour:
   defense: 5
   luck: 2
   skillPoints: 10
+  currentCurrency: 0
   currentXP: 0
   xpToNextLevel: 100
   unlockedSkills: []
   activeBuffs: []
+  hasGuardianAngelCastThisBattle: 0
 --- !u!114 &464531563
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -247,6 +250,18 @@ MonoBehaviour:
   encounterCooldownTime: 5
   isEncounterOnCooldown: 0
   overworldSceneName: MainWorldScene
+--- !u!114 &464531565
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 464531558}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7e77cadcc8ac1ce4face9ff230f5efc9, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::QuestManager
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0

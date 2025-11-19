@@ -8,6 +8,7 @@ public class ItemData : ScriptableObject
     public string description;
     public Sprite icon;
     public int price = 10;
+    public bool isKeyItem = false;
 
     // We'll use this to decide what logic to run
     public enum ItemEffect

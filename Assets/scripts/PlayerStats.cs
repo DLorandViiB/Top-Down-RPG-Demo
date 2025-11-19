@@ -117,7 +117,7 @@ public class PlayerStats : MonoBehaviour
     public void GainXP(int amount)
     {
         currentXP += amount;
-        if (currentXP >= xpToNextLevel)
+        while (currentXP >= xpToNextLevel)
         {
             LevelUp();
         }
