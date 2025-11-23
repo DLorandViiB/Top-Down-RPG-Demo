@@ -1,10 +1,10 @@
 fileFormatVersion: 2
-guid: 12cf72c3b40a00e43954cb4ae39dc8bb
+guid: b3b2453eae0db6f4bafa8ef34f824504
 TextureImporter:
   internalIDToNameTable:
   - first:
-      213: 9116851946686450653
-    second: chest2_0
+      213: -5278253812331525483
+    second: bottom_right_corner_0
   externalObjects: {}
   serializedVersion: 13
   mipmaps:
@@ -51,7 +51,7 @@ TextureImporter:
   spriteMeshType: 1
   alignment: 0
   spritePivot: {x: 0.5, y: 0.5}
-  spritePixelsToUnits: 32
+  spritePixelsToUnits: 16
   spriteBorder: {x: 0, y: 0, z: 0, w: 0}
   spriteGenerateFallbackPhysicsShape: 1
   alphaUsage: 1
@@ -113,13 +113,13 @@ TextureImporter:
     serializedVersion: 2
     sprites:
     - serializedVersion: 2
-      name: chest2_0
+      name: bottom_right_corner_0
       rect:
         serializedVersion: 2
         x: 0
         y: 0
-        width: 32
-        height: 30
+        width: 16
+        height: 16
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -128,8 +128,8 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: ddb0318da80958e70800000000000000
-      internalID: 9116851946686450653
+      spriteID: 59ac0a18f10efb6b0800000000000000
+      internalID: -5278253812331525483
       vertices: []
       indices: 
       edges: []
@@ -148,7 +148,7 @@ TextureImporter:
     spriteCustomMetadata:
       entries: []
     nameFileIdTable:
-      chest2_0: 9116851946686450653
+      bottom_right_corner_0: -5278253812331525483
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 

@@ -12,6 +12,7 @@ GameObject:
   - component: {fileID: 1602862250347174459}
   - component: {fileID: 7132045513928635346}
   - component: {fileID: 8208655110920363537}
+  - component: {fileID: 437215047162601651}
   m_Layer: 0
   m_Name: TreasureChest
   m_TagString: Untagged
@@ -160,6 +161,22 @@ MonoBehaviour:
   currencyToGive: 0
   openMessage: You found a Strenght Rune.
   emptyMessage: It's empty.
+--- !u!111 &437215047162601651
+Animation:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 210428442924467803}
+  m_Enabled: 1
+  serializedVersion: 4
+  m_Animation: {fileID: 0}
+  m_Animations: []
+  m_WrapMode: 0
+  m_PlayAutomatically: 1
+  m_AnimatePhysics: 0
+  m_UpdateMode: 0
+  m_CullingType: 0
 --- !u!1 &2755863103381908471
 GameObject:
   m_ObjectHideFlags: 0
