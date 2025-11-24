@@ -1,39 +1,40 @@
 using UnityEngine;
 using System.Collections.Generic;
-using System.Linq; // Needed for list filtering
+using System.Linq;
 
 public class QuestManager : MonoBehaviour
 {
     public static QuestManager instance;
 
-    // --- DATA LISTS (The UI reads these) ---
+    // --- DRAG ALL YOUR QUESTS HERE IN INSPECTOR ---
+    [Header("Configuration")]
+    public List<QuestData> allGameQuests = new List<QuestData>();
+
+    // --- RUNTIME DATA ---
     public List<Quest> activeQuests = new List<Quest>();
     public List<string> completedQuestIDs = new List<string>();
 
     void Awake()
     {
-        if (instance == null) instance = this;
-        else Destroy(gameObject);
+        if (instance == null) { instance = this; DontDestroyOnLoad(gameObject); }
+        else { Destroy(gameObject); }
     }
 
-    // --- ACTIONS: Manage the Lists ---
+    // --- HELPER: LOOKUP QUEST DATA BY ID ---
+    public QuestData GetQuestDataByID(string id)
+    {
+        return allGameQuests.Find(q => q.questID == id);
+    }
 
+    // --- ACTIONS ---
     public void AcceptQuest(QuestData questData)
     {
-        // Don't accept if we already have it or completed it
-        if (activeQuests.Any(q => q.data == questData) || completedQuestIDs.Contains(questData.questID))
-            return;
-
-        Quest newQuest = new Quest(questData);
-        activeQuests.Add(newQuest);
-
-        // Helper: If it's a Kill quest, check if we already killed the target previously?
-        // (Optional logic, usually not needed for linear RPGs)
+        if (activeQuests.Any(q => q.data == questData) || completedQuestIDs.Contains(questData.questID)) return;
+        activeQuests.Add(new Quest(questData));
     }
 
     public void CompleteQuest(QuestData questData)
     {
-        // Find the active quest
         Quest q = activeQuests.Find(x => x.data == questData);
         if (q != null)
         {
@@ -45,8 +46,7 @@ public class QuestManager : MonoBehaviour
         }
     }
 
-    // --- CHECKERS (Used by StoryNPC) ---
-
+    // --- CHECKERS ---
     public bool CheckFetchRequirement(ItemData itemNeeded)
     {
         if (InventoryManager.instance == null) return false;
@@ -57,83 +57,62 @@ public class QuestManager : MonoBehaviour
     {
         if (GameStatemanager.instance == null) return false;
 
-        // 1. Check game memory
+        // Check if boss is dead in GameState
         bool isDead = GameStatemanager.instance.IsInteractionCompleted(bossInteractionID);
 
-        // 2. If dead, update the active quest tracker so the UI shows progress
+        // If dead, update the active quest tracker immediately
         if (isDead)
         {
-            // Find any active kill quest for this boss and update it
             foreach (Quest q in activeQuests)
             {
                 if (q.data.questType == QuestType.Kill && q.data.killTargetID == bossInteractionID)
                 {
-                    q.currentAmount = 1; // Mark as killed in UI
+                    q.currentAmount = q.data.requiredAmount;
                 }
             }
         }
-
         return isDead;
     }
 
     public void RemoveQuestItem(ItemData itemToRemove)
     {
-        if (itemToRemove.isKeyItem) return; // Safety check
-
+        if (itemToRemove.isKeyItem) return;
         foreach (var slot in InventoryManager.instance.slots)
         {
-            if (slot.item == itemToRemove)
-            {
-                InventoryManager.instance.RemoveItem(slot, 1);
-                return;
-            }
+            if (slot.item == itemToRemove) { InventoryManager.instance.RemoveItem(slot, 1); return; }
         }
     }
 
-    // Returns text for the dialogue box
     public List<string> GrantReward(QuestData quest)
     {
         List<string> rewardMessages = new List<string>();
-
-        // Give XP
         if (quest.xpReward > 0)
         {
             PlayerStats.instance.GainXP(quest.xpReward);
             rewardMessages.Add($"You gained {quest.xpReward} XP!");
         }
-
-        // Give Currency
         if (quest.currencyReward > 0)
         {
             PlayerStats.instance.AddCurrency(quest.currencyReward);
             rewardMessages.Add($"You received {quest.currencyReward} coins!");
         }
-
-        // Give Items
         if (quest.itemRewards != null)
         {
             foreach (ItemData item in quest.itemRewards)
             {
-                if (item != null)
-                {
-                    if (InventoryManager.instance.AddItem(item))
-                        rewardMessages.Add($"You received {item.itemName}!");
-                    else
-                        rewardMessages.Add($"Inventory full! Could not take {item.itemName}.");
-                }
+                if (item != null && InventoryManager.instance.AddItem(item))
+                    rewardMessages.Add($"You received {item.itemName}!");
             }
         }
-
         return rewardMessages;
     }
 }
 
-// This defines what a "Quest" looks like in the active list
 [System.Serializable]
 public class Quest
 {
     public QuestData data;
-    public int currentAmount; // Tracks progress (e.g. 0/1 Bosses killed)
+    public int currentAmount;
 
     public Quest(QuestData d)
     {

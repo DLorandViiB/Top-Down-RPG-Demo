@@ -327,6 +327,18 @@ public class GameStatemanager : MonoBehaviour
 
         data.sceneName = SceneManager.GetActiveScene().name;
 
+        // --- SAVE QUESTS ---
+        data.activeQuestIDs = new List<string>();
+        data.activeQuestProgress = new List<int>();
+
+        foreach (Quest q in QuestManager.instance.activeQuests)
+        {
+            data.activeQuestIDs.Add(q.data.questID);
+            data.activeQuestProgress.Add(q.currentAmount);
+        }
+
+        data.completedQuestIDs = QuestManager.instance.completedQuestIDs;
+
         return data;
     }
 
@@ -402,6 +414,30 @@ public class GameStatemanager : MonoBehaviour
 
         // 5. Apply World State
         this.completedInteractionIDs = data.completedInteractionIDs;
+
+        // --- LOAD QUESTS ---
+        QuestManager qManager = QuestManager.instance;
+        qManager.activeQuests.Clear();
+        qManager.completedQuestIDs.Clear();
+
+        // Restore Completed
+        qManager.completedQuestIDs = data.completedQuestIDs;
+
+        // Restore Active
+        for (int i = 0; i < data.activeQuestIDs.Count; i++)
+        {
+            string id = data.activeQuestIDs[i];
+            int progress = data.activeQuestProgress[i];
+
+            // Use the lookup to get the data back
+            QuestData qData = qManager.GetQuestDataByID(id);
+            if (qData != null)
+            {
+                Quest newQuest = new Quest(qData);
+                newQuest.currentAmount = progress;
+                qManager.activeQuests.Add(newQuest);
+            }
+        }
 
         // Manually trigger the UI update events
         stats.NotifyStatsChanged();

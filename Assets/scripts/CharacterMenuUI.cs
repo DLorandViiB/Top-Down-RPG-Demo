@@ -91,6 +91,26 @@ public class CharacterMenuUI : MonoBehaviour
 
         characterMenu.SetActive(false);
         isMenuOpen = false;
+
+        // FORCE FIX: Reset Active Viewport Layout
+        if (activeQuestContainer != null && activeQuestContainer.parent != null)
+        {
+            RectTransform viewport = activeQuestContainer.parent.GetComponent<RectTransform>();
+            viewport.anchorMin = Vector2.zero; // Bottom-Left (0,0)
+            viewport.anchorMax = Vector2.one;  // Top-Right (1,1)
+            viewport.sizeDelta = Vector2.zero; // Reset offsets/margins to 0
+            viewport.anchoredPosition = Vector2.zero;
+        }
+
+        // FORCE FIX: Reset Completed Viewport Layout
+        if (completedQuestContainer != null && completedQuestContainer.parent != null)
+        {
+            RectTransform viewport = completedQuestContainer.parent.GetComponent<RectTransform>();
+            viewport.anchorMin = Vector2.zero;
+            viewport.anchorMax = Vector2.one;
+            viewport.sizeDelta = Vector2.zero;
+            viewport.anchoredPosition = Vector2.zero;
+        }
     }
 
     void Update()
@@ -163,7 +183,7 @@ public class CharacterMenuUI : MonoBehaviour
         // 2. Build Active List (Top Panel)
         foreach (var q in QuestManager.instance.activeQuests)
         {
-            GameObject go = Instantiate(questSlotPrefab, activeQuestContainer);
+            GameObject go = Instantiate(questSlotPrefab, activeQuestContainer, false);
             go.GetComponentInChildren<TextMeshProUGUI>().text = q.data.title;
 
             // Add to our "master list" for navigation
@@ -173,13 +193,20 @@ public class CharacterMenuUI : MonoBehaviour
         // 3. Build Completed List (Bottom Panel)
         foreach (string id in QuestManager.instance.completedQuestIDs)
         {
-            GameObject go = Instantiate(questSlotPrefab, completedQuestContainer);
+            GameObject go = Instantiate(questSlotPrefab, completedQuestContainer, false);
 
-            // Try to find the quest name from the ID if possible, otherwise show ID
-            // (If you don't have a lookup method, this just shows the ID string)
-            go.GetComponentInChildren<TextMeshProUGUI>().text = id + " (Done)";
+            // LOOKUP THE REAL DATA
+            QuestData qData = QuestManager.instance.GetQuestDataByID(id);
 
-            // Add to our "master list" for navigation
+            if (qData != null)
+            {
+                go.GetComponentInChildren<TextMeshProUGUI>().text = qData.title; // Show "The Mysterious Key"
+            }
+            else
+            {
+                go.GetComponentInChildren<TextMeshProUGUI>().text = id; // Fallback to ID if lookup fails
+            }
+
             allQuestUIObjects.Add(go);
         }
 
@@ -262,13 +289,24 @@ public class CharacterMenuUI : MonoBehaviour
         else
         {
             // --- WE ARE SELECTING A COMPLETED QUEST ---
-            // The index inside the completed list is (questSelectedIndex - activeCount)
             int completedIndex = questSelectedIndex - activeCount;
             string questID = QuestManager.instance.completedQuestIDs[completedIndex];
 
-            questTitleText.text = questID;
-            questObjectiveText.text = "<color=green>COMPLETED</color>";
-            questDescriptionText.text = "You have successfully finished this quest.";
+            // LOOKUP THE REAL DATA
+            QuestData qData = QuestManager.instance.GetQuestDataByID(questID);
+
+            if (qData != null)
+            {
+                questTitleText.text = qData.title;
+                questDescriptionText.text = qData.description; // Show original description
+                questObjectiveText.text = "<color=green>COMPLETED</color>"; // Override objective
+            }
+            else
+            {
+                questTitleText.text = questID;
+                questObjectiveText.text = "Completed";
+                questDescriptionText.text = "";
+            }
         }
     }
 

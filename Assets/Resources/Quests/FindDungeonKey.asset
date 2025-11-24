@@ -14,11 +14,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::QuestData
   questID: find_dungeon_key
   title: The Mysterious Key
-  description: 'It is said that a Key is somewhere hidden in the depths of the Misty
+  description: It is said that a Key is somewhere hidden in the depths of the Misty
     Forest.
-
-
-    Retrieve the Dungeon Key.'
   questType: 0
   itemRequirement: {fileID: 11400000, guid: b4a1bdb4139642b4297dfa36346730d0, type: 2}
   killTargetID: 

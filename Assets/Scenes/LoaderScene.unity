@@ -262,6 +262,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7e77cadcc8ac1ce4face9ff230f5efc9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::QuestManager
+  allGameQuests:
+  - {fileID: 11400000, guid: 467ce5e98a7acc240bead2bbf5ef4040, type: 2}
+  - {fileID: 11400000, guid: 079a8a97a53685e4e9d31b79d7bd8537, type: 2}
+  activeQuests: []
+  completedQuestIDs: []
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0

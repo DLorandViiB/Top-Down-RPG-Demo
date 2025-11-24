@@ -14,11 +14,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::QuestData
   questID: kill_dungeon_boss
   title: A Mighty Beast
-  description: 'The Dungeon is the home of a mighty beast, that''s waiting to be
-    defeated by a worthy hero.
-
-
-    Defeat the Boss.'
+  description: The Dungeon is the home of a mighty beast, that's waiting to be defeated
+    by a worthy hero.
   questType: 1
   itemRequirement: {fileID: 0}
   killTargetID: DemoBoss
