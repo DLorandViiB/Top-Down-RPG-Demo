@@ -171,6 +171,20 @@ public class GameStatemanager : MonoBehaviour
             // We've used the ID, so clear it for next time.
             this.nextSpawnPointID = null;
         }
+
+        // MUSIC LOGIC
+        if (scene.name == "MainWorldScene")
+        {
+            AudioManager.instance.PlayMusic("MainTheme");
+        }
+        else if (scene.name == "DungeonScene")
+        {
+            AudioManager.instance.PlayMusic("DungeonTheme"); // If you have one, or use MainTheme
+        }
+        else if (scene.name == "BattleScene")
+        {
+            AudioManager.instance.PlayMusic("BattleTheme");
+        }
     }
 
     public void CaptureCurrentStateForSceneChange()
@@ -520,6 +534,8 @@ public class GameStatemanager : MonoBehaviour
 
     private IEnumerator BattleTransition(EnemyData enemy)
     {
+        AudioManager.instance.PlaySFX("EnemyEncounter");
+
         // 0. SNAPSHOT THE CURRENT GAME STATE
         GameObject playerObj = GameObject.FindGameObjectWithTag("Player");
         if (playerObj != null)
@@ -552,6 +568,7 @@ public class GameStatemanager : MonoBehaviour
 
         public void EndBattle()
         {
+            AudioManager.instance.PlaySFX("EnemyDefeated");
             StartCoroutine(EndBattleTransition());
         }
 

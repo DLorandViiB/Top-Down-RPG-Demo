@@ -41,6 +41,7 @@ public class StoryNPC : MonoBehaviour, IInteractable
 
     public void OnInteract()
     {
+        AudioManager.instance.PlaySFX("WorldObjects");
         int stage = GetCurrentStage();
 
         // STAGE 0: START

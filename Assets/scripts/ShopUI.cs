@@ -264,6 +264,7 @@ public class ShopUI : MonoBehaviour
 
             if (PlayerStats.instance.SpendCurrency(itemToBuy.price))
             {
+                AudioManager.instance.PlaySFX("BuySell");
                 InventoryManager.instance.AddItem(itemToBuy);
 
                 // Decrement stock
@@ -281,7 +282,7 @@ public class ShopUI : MonoBehaviour
             }
             else
             {
-                Debug.Log("Not enough currency!");
+                AudioManager.instance.PlaySFX("MenuDenied");
             }
         }
         else
@@ -293,6 +294,7 @@ public class ShopUI : MonoBehaviour
 
             int sellPrice = Mathf.Max(1, Mathf.RoundToInt(slotToSell.item.price * 0.5f));
 
+            AudioManager.instance.PlaySFX("BuySell");
             PlayerStats.instance.AddCurrency(sellPrice);
             InventoryManager.instance.RemoveItem(slotToSell, 1);
 

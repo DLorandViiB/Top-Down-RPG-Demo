@@ -33,6 +33,7 @@ public class NPC : MonoBehaviour, IInteractable
     // This is called by PlayerInteraction.cs when 'Z' is pressed
     public void OnInteract()
     {
+        AudioManager.instance.PlaySFX("WorldObjects");
         // Check the "Brain" (GameStatemanager) to see if we've
         // already done this interaction.
         if (GameStatemanager.instance.IsInteractionCompleted(interactionID))

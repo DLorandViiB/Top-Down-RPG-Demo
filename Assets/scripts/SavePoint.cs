@@ -15,7 +15,7 @@ public class SavePoint : MonoBehaviour, IInteractable
     // This is called by PlayerInteraction.cs when 'Z' is pressed
     public void OnInteract()
     {
-        Debug.Log("Interactable: SavePoint activated.");
+        AudioManager.instance.PlaySFX("Heal");
 
         // 1. Actually save the game
         GameStatemanager.instance.SaveGame();

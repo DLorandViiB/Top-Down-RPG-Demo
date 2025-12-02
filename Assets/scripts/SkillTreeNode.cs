@@ -109,12 +109,12 @@ public class SkillTreeNode : MonoBehaviour
             // Try to buy the skill
             if (player.UnlockSkill(skillData))
             {
-                Debug.Log("Successfully unlocked: " + skillData.skillName);
+                AudioManager.instance.PlaySFX("MenuConfirm");
                 // OnStatsChanged will auto-refresh visuals
             }
             else
             {
-                Debug.Log("Purchase FAILED (Not enough points): " + skillData.skillName);
+                AudioManager.instance.PlaySFX("MenuDenied");
             }
         }
         else if (status == SkillStatus.Unlocked)
@@ -123,7 +123,7 @@ public class SkillTreeNode : MonoBehaviour
         }
         else // (status == SkillStatus.Locked)
         {
-            Debug.Log("Cannot unlock! Prerequisite not met.");
+            AudioManager.instance.PlaySFX("MenuDenied");
         }
     }
 

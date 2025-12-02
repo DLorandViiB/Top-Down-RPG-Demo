@@ -51,7 +51,7 @@ public class LockedDoor : MonoBehaviour, IInteractable
         {
             // --- STATE 1: ALREADY UNLOCKED ---
             // The door is open, so just load the scene.
-            Debug.Log($"Door is already unlocked. Loading scene: {sceneToLoad}");
+            AudioManager.instance.PlaySFX("WorldObjects");
 
             if (!string.IsNullOrEmpty(sceneToLoad))
             {
@@ -71,6 +71,7 @@ public class LockedDoor : MonoBehaviour, IInteractable
             {
                 // --- PLAYER HAS KEY ---
                 // 1. Mark as completed in the save system
+                AudioManager.instance.PlaySFX("WorldObjects");
                 GameStatemanager.instance.MarkInteractionAsCompleted(interactionID);
 
                 // 2. Set our internal state
@@ -83,6 +84,7 @@ public class LockedDoor : MonoBehaviour, IInteractable
             {
                 // --- PLAYER DOES NOT HAVE KEY ---
                 // 4. Show the "locked" message
+                AudioManager.instance.PlaySFX("WorldObjects");
                 DialogueManager.instance.StartDialogue(new string[] { lockedMessage });
             }
         }

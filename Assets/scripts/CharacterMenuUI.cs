@@ -226,10 +226,12 @@ public class CharacterMenuUI : MonoBehaviour
         if (keyboard.upArrowKey.wasPressedThisFrame)
         {
             questSelectedIndex--;
+            AudioManager.instance.PlaySFX("MenuBlip");
         }
         else if (keyboard.downArrowKey.wasPressedThisFrame)
         {
             questSelectedIndex++;
+            AudioManager.instance.PlaySFX("MenuBlip");
         }
 
         // Clamp the index so it stays within the total list (Active + Completed)
@@ -316,8 +318,16 @@ public class CharacterMenuUI : MonoBehaviour
 
     void ToggleMenu()
     {
-        if (isMenuOpen) CloseMenu();
-        else OpenMenu();
+        if (isMenuOpen)
+        {
+            AudioManager.instance.PlaySFX("MenuOpen");
+            CloseMenu();
+        }
+        else
+        {
+            AudioManager.instance.PlaySFX("MenuOpen");
+            OpenMenu();
+        }
     }
 
     void OpenMenu()
@@ -366,17 +376,41 @@ public class CharacterMenuUI : MonoBehaviour
         if (inventorySlots.Count == 0) return;
         var keyboard = Keyboard.current;
         int previousIndex = selectedSlotIndex;
-        if (keyboard.rightArrowKey.wasPressedThisFrame) selectedSlotIndex++;
-        else if (keyboard.leftArrowKey.wasPressedThisFrame) selectedSlotIndex--;
-        else if (keyboard.upArrowKey.wasPressedThisFrame) selectedSlotIndex -= columns;
-        else if (keyboard.downArrowKey.wasPressedThisFrame) selectedSlotIndex += columns;
+        if (keyboard.rightArrowKey.wasPressedThisFrame)
+        { 
+            selectedSlotIndex++;
+            AudioManager.instance.PlaySFX("MenuBlip");
+        }
+        else if (keyboard.leftArrowKey.wasPressedThisFrame) 
+        { 
+            selectedSlotIndex--;
+            AudioManager.instance.PlaySFX("MenuBlip");
+        }
+        else if (keyboard.upArrowKey.wasPressedThisFrame) 
+        { 
+            selectedSlotIndex -= columns;
+            AudioManager.instance.PlaySFX("MenuBlip");
+        }
+        else if (keyboard.downArrowKey.wasPressedThisFrame)
+        { 
+            selectedSlotIndex += columns;
+            AudioManager.instance.PlaySFX("MenuBlip");
+        }
         selectedSlotIndex = Mathf.Clamp(selectedSlotIndex, 0, inventorySlots.Count - 1);
         if (selectedSlotIndex != previousIndex) UpdateSlotSelection();
 
         if (keyboard.zKey.wasPressedThisFrame)
         {
             InventorySlot slot = InventoryManager.instance.slots[selectedSlotIndex];
-            if (slot.item != null && slot.item.canUseInMenu) InventoryManager.instance.UseItem(slot);
+            if (slot.item != null && slot.item.canUseInMenu) 
+            { 
+                InventoryManager.instance.UseItem(slot);
+                AudioManager.instance.PlaySFX("MenuConfirm");
+            }
+            else
+            {
+                AudioManager.instance.PlaySFX("MenuDenied");
+            }
         }
     }
 
@@ -407,10 +441,26 @@ public class CharacterMenuUI : MonoBehaviour
         var keyboard = Keyboard.current;
         SkillTreeNode nextNode = null;
 
-        if (keyboard.upArrowKey.wasPressedThisFrame) nextNode = currentNode.nodeUp;
-        else if (keyboard.downArrowKey.wasPressedThisFrame) nextNode = currentNode.nodeDown;
-        else if (keyboard.leftArrowKey.wasPressedThisFrame) nextNode = currentNode.nodeLeft;
-        else if (keyboard.rightArrowKey.wasPressedThisFrame) nextNode = currentNode.nodeRight;
+        if (keyboard.upArrowKey.wasPressedThisFrame) 
+        { 
+            nextNode = currentNode.nodeUp;
+            AudioManager.instance.PlaySFX("MenuBlip");
+        }
+        else if (keyboard.downArrowKey.wasPressedThisFrame) 
+        { 
+            nextNode = currentNode.nodeDown;
+            AudioManager.instance.PlaySFX("MenuBlip");
+        }
+        else if (keyboard.leftArrowKey.wasPressedThisFrame) 
+        {
+            nextNode = currentNode.nodeLeft;
+            AudioManager.instance.PlaySFX("MenuBlip");
+        }
+        else if (keyboard.rightArrowKey.wasPressedThisFrame) 
+        { 
+            nextNode = currentNode.nodeRight;
+            AudioManager.instance.PlaySFX("MenuBlip");
+        }
 
         if (nextNode != null)
         {
@@ -419,7 +469,10 @@ public class CharacterMenuUI : MonoBehaviour
             currentNode.SelectNode();
             UpdateSkillDescription();
         }
-        if (keyboard.zKey.wasPressedThisFrame) currentNode.OnNodeClicked();
+        if (keyboard.zKey.wasPressedThisFrame) 
+        { 
+            currentNode.OnNodeClicked();
+        }
     }
 
     public void UpdateSkillPoints()

@@ -55,6 +55,7 @@ public class TreasureChest : MonoBehaviour, IInteractable
         {
             // --- STATE 2: ALREADY OPENED ---
             // Just show the "empty" message.
+            AudioManager.instance.PlaySFX("WorldObjects");
             DialogueManager.instance.StartDialogue(new string[] { emptyMessage });
         }
         else
@@ -63,6 +64,7 @@ public class TreasureChest : MonoBehaviour, IInteractable
 
             // 1. Mark as completed
             GameStatemanager.instance.MarkInteractionAsCompleted(interactionID);
+            AudioManager.instance.PlaySFX("WorldObjects");
             isAlreadyOpened = true;
 
             // 2. Change sprite

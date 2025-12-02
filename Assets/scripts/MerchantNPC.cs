@@ -30,6 +30,7 @@ public class MerchantNPC : MonoBehaviour, IInteractable
     {
         // 1. Show the greeting, and when it's done,
         // run the "OpenTheShop" function.
+        AudioManager.instance.PlaySFX("WorldObjects");
         DialogueManager.instance.StartDialogue(new string[] { greetingMessage }, OpenTheShop);
     }
 

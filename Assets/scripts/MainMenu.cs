@@ -28,6 +28,11 @@ public class MainMenu : MonoBehaviour
             return;
         }
 
+        if (AudioManager.instance != null)
+        {
+            AudioManager.instance.PlayMusic("TitleTheme");
+        }
+
         // --- The Core Logic ---
         // Check if a save file exists
         if (gameManager.DoesSaveFileExist())

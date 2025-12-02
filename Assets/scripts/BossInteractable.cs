@@ -46,6 +46,7 @@ public class BossInteractable : MonoBehaviour, IInteractable
         {
             // --- STATE 1: ALREADY DEFEATED ---
             // Just show the "it's dead" message.
+            AudioManager.instance.PlaySFX("WorldObjects");
             DialogueManager.instance.StartDialogue(new string[] { postBattleDialogue });
         }
         else
@@ -53,6 +54,7 @@ public class BossInteractable : MonoBehaviour, IInteractable
             // --- STATE 2: ALIVE ---
             // Start the pre-battle speech.
             // We pass "OnDialogueComplete" as the callback.
+            AudioManager.instance.PlaySFX("WorldObjects");
             DialogueManager.instance.StartDialogue(preBattleDialogue, OnDialogueComplete);
         }
     }

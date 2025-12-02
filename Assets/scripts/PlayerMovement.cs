@@ -1,6 +1,7 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
 using System.Collections.Generic;
+using UnityEngine.SceneManagement;
 
 public class PlayerMovement : MonoBehaviour
 {
@@ -16,6 +17,10 @@ public class PlayerMovement : MonoBehaviour
     private List<Key> pressedKeys = new List<Key>();
 
     private Animator anim;
+
+    [Header("Audio")]
+    public float stepRate = 0.5f;
+    private float stepTimer = 0f;
 
     private void Start()
     {
@@ -51,6 +56,43 @@ public class PlayerMovement : MonoBehaviour
 
         anim.SetFloat("moveX", direction.x);
         anim.SetFloat("moveY", direction.y);
+
+        HandleFootsteps();
+    }
+
+    private void HandleFootsteps()
+    {
+        // Check if we are actually trying to move
+        if (direction != Vector2.zero)
+        {
+            stepTimer -= Time.deltaTime;
+
+            if (stepTimer <= 0)
+            {
+                // Reset the timer
+                stepTimer = stepRate;
+
+                // Check which scene we are in
+                string currentScene = SceneManager.GetActiveScene().name;
+
+                // Play sound based on scene
+                if (currentScene.Contains("DungeonScene"))
+                {
+                    AudioManager.instance.PlaySFX("StepDungeon");
+                }
+                else
+                {
+                    // Default to grass for MainWorld or others
+                    AudioManager.instance.PlaySFX("StepGrass");
+                }
+            }
+        }
+        else
+        {
+            // If we stop moving, reset the timer to 0.
+            // This ensures the sound plays *immediately* the next time we press a key.
+            stepTimer = 0f;
+        }
     }
 
     private void HandleKey(UnityEngine.InputSystem.Controls.KeyControl keyControl, Key key)

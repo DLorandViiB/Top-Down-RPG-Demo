@@ -235,11 +235,13 @@ public class BattleManager : MonoBehaviour
 
         if (previousIndex != currentActionIndex)
         {
+            AudioManager.instance.PlaySFX("MenuBlip");
             actionButtons[currentActionIndex].Select();
         }
 
         if (Input.GetKeyDown(KeyCode.Z))
         {
+            AudioManager.instance.PlaySFX("MenuConfirm");
             actionButtons[currentActionIndex].onClick.Invoke();
         }
     }
@@ -277,10 +279,12 @@ public class BattleManager : MonoBehaviour
         {
             currentSkillButtons[previousIndex].Deselect();
             currentSkillButtons[currentSkillIndex].Select();
+            AudioManager.instance.PlaySFX("MenuBlip");
         }
 
         if (Input.GetKeyDown(KeyCode.Z))
         {
+            AudioManager.instance.PlaySFX("MenuConfirm");
             currentSkillButtons[currentSkillIndex].GetComponent<Button>().onClick.Invoke();
         }
     }
@@ -368,6 +372,7 @@ public class BattleManager : MonoBehaviour
 
             if (damage < 1) damage = 1;
 
+            AudioManager.instance.PlaySFX("BasicAttack");
             damageResult = playerStats.TakeDamage(damage);
             UpdatePlayerUI();
             yield return StartCoroutine(ShowMessageAndWait($"{message} {damage} damage!"));
@@ -481,6 +486,7 @@ public class BattleManager : MonoBehaviour
 
         if (battleSkills.Count == 0)
         {
+            AudioManager.instance.PlaySFX("MenuDenied");
             StartCoroutine(ShowMessageAndWait("You have not learned any battle skills!"));
             return;
         }
@@ -517,6 +523,7 @@ public class BattleManager : MonoBehaviour
     {
         if (playerStats.currentMana < selectedSkill.manaCost)
         {
+            AudioManager.instance.PlaySFX("MenuDenied");
             StartCoroutine(ShowMessageAndWait("Not enough mana!"));
             return;
         }
@@ -619,6 +626,7 @@ public class BattleManager : MonoBehaviour
 
         if (battleItems.Count == 0)
         {
+            AudioManager.instance.PlaySFX("MenuDenied");
             StartCoroutine(ShowMessageAndWait("You have no items to use!"));
             return;
         }
@@ -685,10 +693,12 @@ public class BattleManager : MonoBehaviour
 
             // Update description box
             ShowItemDescription(currentItemSlots[currentItemIndex].itemData);
+            AudioManager.instance.PlaySFX("MenuBlip");
         }
 
         if (Input.GetKeyDown(KeyCode.Z))
         {
+            AudioManager.instance.PlaySFX("MenuConfirm");
             currentItemSlots[currentItemIndex].GetComponent<Button>().onClick.Invoke();
         }
     }
@@ -708,6 +718,7 @@ public class BattleManager : MonoBehaviour
         // 2. Check if the use was a SUCCESS (empty string)
         if (string.IsNullOrEmpty(useResult))
         {
+            AudioManager.instance.PlaySFX("MenuConfirm");
             // SUCCESS!
             // This is a valid turn. Lock the player and clean up.
             isPlayerTurn = false;
@@ -724,6 +735,7 @@ public class BattleManager : MonoBehaviour
         }
         else
         {
+            AudioManager.instance.PlaySFX("MenuDenied");
             // FAILURE!
             // Show the error message (e.g., "Health is already full!")
             yield return StartCoroutine(ShowMessageAndWait(useResult));
@@ -750,6 +762,7 @@ public class BattleManager : MonoBehaviour
 
         if (enemy.enemyData.isBoss)
         {
+            AudioManager.instance.PlaySFX("MenuDenied");
             StartCoroutine(ShowMessageAndWait("You cannot escape from a boss!"));
             return;
         }
@@ -761,6 +774,7 @@ public class BattleManager : MonoBehaviour
 
     IEnumerator RunAwaySequence()
     {
+        AudioManager.instance.PlaySFX("RunButton");
         yield return StartCoroutine(ShowMessageAndWait("You got away safely!"));
         GameStatemanager.instance.EndBattle();
     }
@@ -843,6 +857,7 @@ public class BattleManager : MonoBehaviour
 
     IEnumerator PerformHeal(SkillData skill)
     {
+        AudioManager.instance.PlaySFX("Heal");
         int healAmount = Mathf.RoundToInt(playerStats.maxHealth * 0.3f);
         playerStats.Heal(healAmount);
         UpdatePlayerUI();
@@ -891,6 +906,11 @@ public class BattleManager : MonoBehaviour
     IEnumerator PerformDamage(SkillData skill, int minRoll)
     {
         int roll = Random.Range(1, 21);
+
+        // --- SOUND LOGIC ---
+        if (skill.element == SkillData.ElementType.Fire) AudioManager.instance.PlaySFX("FireSlash");
+        else if (skill.element == SkillData.ElementType.Ice) AudioManager.instance.PlaySFX("IceSkill");
+        else AudioManager.instance.PlaySFX("HeavySkill");
 
         if (minRoll > 1)
         {
@@ -956,6 +976,9 @@ public class BattleManager : MonoBehaviour
     {
         int damage = (playerStats.attack + finalRoll) - enemy.enemyData.defense;
         if (damage < 1) damage = 1;
+
+        AudioManager.instance.PlaySFX("BasicAttack");
+
         yield return StartCoroutine(ShowMessageAndWait($"You attack! Your roll of {finalRoll} deals {damage} damage."));
         enemy.TakeDamage(damage);
         UpdateEnemyUI();
@@ -965,6 +988,9 @@ public class BattleManager : MonoBehaviour
     {
         int damage = Mathf.RoundToInt((playerStats.attack + finalRoll) * 1.5f);
         if (damage < 1) damage = 1;
+
+        AudioManager.instance.PlaySFX("HeavySkill");
+
         yield return StartCoroutine(ShowMessageAndWait($"A critical hit! Your roll of {finalRoll} deals {damage} damage!"));
         enemy.TakeDamage(damage);
         UpdateEnemyUI();
