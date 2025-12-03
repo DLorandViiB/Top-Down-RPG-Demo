@@ -1,10 +1,10 @@
 fileFormatVersion: 2
-guid: 86f4a673386fff7449d1a5e76fe86806
+guid: d01fc8bd44577e64ebf60f8c26deb898
 TextureImporter:
   internalIDToNameTable:
   - first:
-      213: 4863554413037471907
-    second: pine_0
+      213: 9026820160844429725
+    second: pine_bottom_with_grass_0
   externalObjects: {}
   serializedVersion: 13
   mipmaps:
@@ -113,13 +113,13 @@ TextureImporter:
     serializedVersion: 2
     sprites:
     - serializedVersion: 2
-      name: pine_0
+      name: pine_bottom_with_grass_0
       rect:
         serializedVersion: 2
         x: 0
         y: 0
         width: 16
-        height: 32
+        height: 16
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -128,8 +128,8 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: 3a8c1ee68f0de7340800000000000000
-      internalID: 4863554413037471907
+      spriteID: d9977723c15b54d70800000000000000
+      internalID: 9026820160844429725
       vertices: []
       indices: 
       edges: []
@@ -148,7 +148,7 @@ TextureImporter:
     spriteCustomMetadata:
       entries: []
     nameFileIdTable:
-      pine_0: 4863554413037471907
+      pine_bottom_with_grass_0: 9026820160844429725
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 
