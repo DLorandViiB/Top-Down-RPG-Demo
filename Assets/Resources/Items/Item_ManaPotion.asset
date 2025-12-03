@@ -14,7 +14,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::ItemData
   itemName: Mana Potion
   description: Restores 25 Mana
-  icon: {fileID: 2996405644704382645, guid: 08c258c9110835c4289f81172776499d, type: 3}
+  icon: {fileID: 253091207357794252, guid: cb49f1dabd2ff954eb5dee36d9d91f86, type: 3}
+  price: 10
   effect: 1
   amount: 25
   canUseInBattle: 1
