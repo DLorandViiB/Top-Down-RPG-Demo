@@ -202,10 +202,12 @@ MonoBehaviour:
   defense: 5
   luck: 2
   skillPoints: 10
+  currentCurrency: 0
   currentXP: 0
   xpToNextLevel: 100
   unlockedSkills: []
   activeBuffs: []
+  hasGuardianAngelCastThisBattle: 0
 --- !u!114 &464531563
 MonoBehaviour:
   m_ObjectHideFlags: 0
