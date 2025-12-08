@@ -333,7 +333,7 @@ public class ShopUI : MonoBehaviour
 
         foreach (InventorySlot slot in InventoryManager.instance.slots)
         {
-            if (slot.item != null)
+            if (slot.item != null && slot.item.isKeyItem == false)
             {
                 playerSellableItems.Add(slot);
 
