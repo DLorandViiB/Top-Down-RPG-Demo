@@ -63,6 +63,13 @@ public class GameStatemanager : MonoBehaviour
         }
     }
 
+    void Start()
+    {
+        // DISABLE MOUSE
+        Cursor.lockState = CursorLockMode.Locked; // Locks cursor to center of screen
+        Cursor.visible = false;                   // Hides it
+    }
+
     public void SetNextSpawnPoint(string spawnID)
     {
         this.nextSpawnPointID = spawnID;
