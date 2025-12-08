@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::ItemData
   itemName: Dungeon Key
   description: A large, ornate key. It looks like it opens a specific door.
-  icon: {fileID: 10901, guid: 0000000000000000f000000000000000, type: 0}
+  icon: {fileID: 8495392443900425323, guid: 13cf517456b99f54883f7e6ec5b8fd3a, type: 3}
   price: 10
   isKeyItem: 1
   effect: 0

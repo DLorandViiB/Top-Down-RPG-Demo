@@ -12,10 +12,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ca433122ab7b196469b843d4dd212ffa, type: 3}
   m_Name: Item_Strength
   m_EditorClassIdentifier: Assembly-CSharp::ItemData
-  itemName: Strength
+  itemName: Strength Rune
   description: Increases your Attack for the next 5 turns in battle
   icon: {fileID: -473847214779505007, guid: b62f86016ee74954ea37430d5404c7d7, type: 3}
   price: 10
+  isKeyItem: 0
   effect: 2
   amount: 5
   canUseInBattle: 1

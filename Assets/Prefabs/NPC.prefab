@@ -108,14 +108,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::NPC
   indicator: {fileID: 2655772151599826704}
   interactionID: TestNPC
-  initialDialogue:
-  - Hello traveller!
-  - I heard there's a Key somewhere in the forest maze
-  - Take this potion, it will surely come in handy
-  repeatedDialogue:
-  - Go, find that key
-  itemsToGive:
-  - {fileID: 11400000, guid: 3fe441f87ab4bd84e9b7b766d2ca5bfe, type: 2}
+  initialDialogue: []
+  repeatedDialogue: []
+  itemsToGive: []
+  currencyToGive: 0
 --- !u!58 &5227500527816548430
 CircleCollider2D:
   m_ObjectHideFlags: 0
@@ -247,7 +243,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
   m_LocalPosition: {x: 0.0048308372, y: 0.86993027, z: 0}
-  m_LocalScale: {x: 0.39999998, y: 0.39999998, z: 1}
+  m_LocalScale: {x: 3, y: 3, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 2484228549752541731}
@@ -299,7 +295,7 @@ SpriteRenderer:
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 10
-  m_Sprite: {fileID: -2413806693520163455, guid: a86470a33a6bf42c4b3595704624658b, type: 3}
+  m_Sprite: {fileID: -1739233933848108069, guid: 7fdbfddb342a1bb4192e40dd142f7ec9, type: 3}
   m_Color: {r: 1, g: 1, b: 0, a: 1}
   m_FlipX: 0
   m_FlipY: 0

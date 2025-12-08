@@ -45,7 +45,7 @@ public class EncounterZone : MonoBehaviour
                 // Roll the dice (scaled by time)
                 if (!GameStatemanager.instance.isEncounterOnCooldown)
                 {
-                    if (/*Random.value < encounterChance * Time.deltaTime*/ true)
+                    if (Random.value < encounterChance * Time.deltaTime)
                     {
                         StartEncounter();
                     }
