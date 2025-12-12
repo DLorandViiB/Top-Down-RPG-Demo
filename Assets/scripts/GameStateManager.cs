@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.IO;
 using TMPro;
 using System.Linq;
+using UnityEngine.InputSystem;
 
 public class GameStatemanager : MonoBehaviour
 {
@@ -41,6 +42,10 @@ public class GameStatemanager : MonoBehaviour
     private string sceneToReturnTo;
     private int uiPauseCounter = 0;
 
+    [Header("Quit UI")]
+    public GameObject quittingTextObj;
+    private bool isQuitting = false;
+
     void Awake()
     {
         // This is the "boss" singleton.
@@ -68,6 +73,39 @@ public class GameStatemanager : MonoBehaviour
         // DISABLE MOUSE
         Cursor.lockState = CursorLockMode.Locked; // Locks cursor to center of screen
         Cursor.visible = false;                   // Hides it
+    }
+
+    void Update()
+    {
+        // Global Quit Check
+        if (!isQuitting && Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame)
+        {
+            StartCoroutine(QuitGameSequence());
+        }
+    }
+
+    private IEnumerator QuitGameSequence()
+    {
+        isQuitting = true;
+        Debug.Log("Starting Quit Sequence...");
+
+        // 1. Show the text
+        if (quittingTextObj != null)
+        {
+            quittingTextObj.SetActive(true);
+        }
+
+        // 2. Wait
+        yield return new WaitForSeconds(1.5f);
+
+        // 3. Quit
+        Debug.Log("Application Quit.");
+        Application.Quit();
+
+        // This allows it to stop playing in the Unity Editor too
+        #if UNITY_EDITOR
+                UnityEditor.EditorApplication.isPlaying = false;
+        #endif
     }
 
     public void SetNextSpawnPoint(string spawnID)

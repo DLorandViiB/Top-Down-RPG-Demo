@@ -15,7 +15,7 @@ MonoBehaviour:
   itemName: Strength Rune
   description: Increases your Attack for the next 5 turns in battle
   icon: {fileID: -473847214779505007, guid: b62f86016ee74954ea37430d5404c7d7, type: 3}
-  price: 10
+  price: 250
   isKeyItem: 0
   effect: 2
   amount: 5

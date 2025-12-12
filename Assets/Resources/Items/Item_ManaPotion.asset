@@ -15,7 +15,8 @@ MonoBehaviour:
   itemName: Mana Potion
   description: Restores 25 Mana
   icon: {fileID: 253091207357794252, guid: cb49f1dabd2ff954eb5dee36d9d91f86, type: 3}
-  price: 10
+  price: 100
+  isKeyItem: 0
   effect: 1
   amount: 25
   canUseInBattle: 1

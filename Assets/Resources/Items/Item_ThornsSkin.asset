@@ -15,7 +15,8 @@ MonoBehaviour:
   itemName: Thorns Skin
   description: Enemies also take damage when damaging the player for the next 5 turns
   icon: {fileID: -4140570023293985188, guid: 31f21eb08409315419463ebe5d7ad671, type: 3}
-  price: 10
+  price: 250
+  isKeyItem: 0
   effect: 3
   amount: 5
   canUseInBattle: 1

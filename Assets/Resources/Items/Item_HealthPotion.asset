@@ -15,7 +15,8 @@ MonoBehaviour:
   itemName: Health Potion
   description: Restores 50 HP
   icon: {fileID: 8717908661333387831, guid: 4387e6e140b438b4dba4274da7de68dc, type: 3}
-  price: 10
+  price: 100
+  isKeyItem: 0
   effect: 0
   amount: 50
   canUseInBattle: 1
