@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: DemoBoss
   m_EditorClassIdentifier: Assembly-CSharp::EnemyData
   enemyName: Demo Boss
-  sprite: {fileID: 2996405644704382645, guid: 08c258c9110835c4289f81172776499d, type: 3}
+  sprite: {fileID: 3977187297506800659, guid: 6ef2001d34a106a409befb79d5369a27, type: 3}
   maxHealth: 300
   attack: 10
   defense: 10
