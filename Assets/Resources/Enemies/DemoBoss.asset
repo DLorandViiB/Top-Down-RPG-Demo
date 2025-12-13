@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c2fff82a75db6c84d92ab7f12044593d, type: 3}
   m_Name: DemoBoss
   m_EditorClassIdentifier: Assembly-CSharp::EnemyData
-  enemyName: Demo Boss
+  enemyName: Cosmic Jellyfish
   sprite: {fileID: 3977187297506800659, guid: 6ef2001d34a106a409befb79d5369a27, type: 3}
   maxHealth: 300
   attack: 10

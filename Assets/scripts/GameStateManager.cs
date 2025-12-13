@@ -46,6 +46,9 @@ public class GameStatemanager : MonoBehaviour
     public GameObject quittingTextObj;
     private bool isQuitting = false;
 
+    [Header("Battle Context")]
+    public string lastExplorationScene;
+
     void Awake()
     {
         // This is the "boss" singleton.
@@ -224,11 +227,15 @@ public class GameStatemanager : MonoBehaviour
         }
         else if (scene.name == "DungeonScene")
         {
-            AudioManager.instance.PlayMusic("DungeonTheme"); // If you have one, or use MainTheme
+            AudioManager.instance.PlayMusic("DungeonTheme");
         }
         else if (scene.name == "BattleScene")
         {
             AudioManager.instance.PlayMusic("BattleTheme");
+        }
+        else if (scene.name == "DeathScene")
+        {
+            AudioManager.instance.StopMusic();
         }
     }
 
@@ -565,6 +572,7 @@ public class GameStatemanager : MonoBehaviour
 
     public void StartBattle(EnemyData enemy)
     {
+        lastExplorationScene = UnityEngine.SceneManagement.SceneManager.GetActiveScene().name;
         this.sceneToReturnTo = SceneManager.GetActiveScene().name;
 
         // playerMovement is now found by OnSceneLoaded, so we just check if it exists

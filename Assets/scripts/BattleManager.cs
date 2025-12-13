@@ -54,6 +54,11 @@ public class BattleManager : MonoBehaviour
     public float typeSpeed = 0.02f;
     private bool isTyping = false;
 
+    [Header("Background Settings")]
+    public Image backgroundImage;
+    public Sprite forestBackground;
+    public Sprite dungeonBackground;
+
     // --- Action Queue ---
     private Queue<IEnumerator> battleActionQueue = new Queue<IEnumerator>();
     private bool isSequenceRunning = false;
@@ -99,6 +104,19 @@ public class BattleManager : MonoBehaviour
 
     void Start()
     {
+        string sceneName = GameStatemanager.instance.lastExplorationScene;
+
+        // Check if the previous scene name contains "Dungeon"
+        if (!string.IsNullOrEmpty(sceneName) && sceneName.Contains("Dungeon"))
+        {
+            backgroundImage.sprite = dungeonBackground;
+        }
+        else
+        {
+            // Default to Forest (Main World)
+            backgroundImage.sprite = forestBackground;
+        }
+
         if (playerStats != null)
         {
             SpriteRenderer playerSprite = playerStats.GetComponentInChildren<SpriteRenderer>();
